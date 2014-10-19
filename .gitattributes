@@ -1,0 +1,3 @@
+*.ser -text
+*.fst -text
+*.fst.txt text
