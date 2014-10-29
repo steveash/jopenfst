@@ -94,8 +94,8 @@ public class Determinize {
     // initialize the queue and new fst
     Semiring semiring = fst.getSemiring();
     Fst res = new Fst(semiring);
-    res.setIsyms(fst.getIsyms());
-    res.setOsyms(fst.getOsyms());
+    res.setInputSymbolsFrom(fst);
+    res.setOutputSymbolsFrom(fst);
 
     // stores the queue (item in index 0 is next)
     ArrayList<ArrayList<MutablePair<State, Float>>> queue = new ArrayList<>();

@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import static com.github.steveash.jopenfst.operations.Compose.AugmentLabels.INPUT;
+import static com.github.steveash.jopenfst.operations.Compose.AugmentLabels.OUTPUT;
+
 /**
  * Compose operation.
  *
@@ -37,6 +40,8 @@ import java.util.HashMap;
  */
 
 public class Compose {
+
+  public enum AugmentLabels { INPUT, OUTPUT }
 
   /**
    * Default Constructor
@@ -56,9 +61,7 @@ public class Compose {
    */
   public static Fst compose(Fst fst1, Fst fst2, Semiring semiring,
                             boolean sorted) {
-    if (!Arrays.equals(fst1.getOsyms(), fst2.getIsyms())) {
-      throw new IllegalArgumentException("Symbol tables don't match, cant compose " + fst1 + " to " + fst2);
-    }
+    fst1.throwIfThisOutputIsNotThatInput(fst2);
 
     Fst res = new Fst(semiring);
 
@@ -117,8 +120,8 @@ public class Compose {
       }
     }
 
-    res.setIsyms(fst1.getIsyms());
-    res.setOsyms(fst2.getOsyms());
+    res.setInputSymbolsFrom(fst1);
+    res.setOutputSymbolsFrom(fst2);
 
     return res;
   }
@@ -137,9 +140,7 @@ public class Compose {
       return null;
     }
 
-    if (!Arrays.equals(fst1.getOsyms(), fst2.getIsyms())) {
-      throw new IllegalArgumentException("Symbol tables don't match on " + fst1 + " or " + fst2);
-    }
+    fst1.throwIfThisOutputIsNotThatInput(fst2);
 
     Fst filter = getFilter(fst1.getOsyms(), semiring);
     augment(1, fst1, semiring);
@@ -215,20 +216,30 @@ public class Compose {
    *                 augment will take place for input labels For value equal to 1 augment will take place for output
    *                 labels
    * @param fst      the fst to augment
-   * @param semiring the semiring to use in the operation
    */
+  public static void augment(AugmentLabels whichLabels, Fst fst) {
+    augment(whichLabels, fst, fst.getSemiring());
+  }
+
   public static void augment(int label, Fst fst, Semiring semiring) {
+    if (label == 0) {
+      augment(INPUT, fst, semiring);
+    } else if (label == 1) {
+      augment(OUTPUT, fst, semiring);
+    } else {
+      throw new IllegalArgumentException("Only takes input 0 or output 1 labels");
+    }
+  }
+
+  public static void augment(AugmentLabels label, Fst fst, Semiring semiring) {
     // label: 0->augment on ilabel
     // 1->augment on olabel
 
-    String[] isyms = fst.getIsyms();
-    String[] osyms = fst.getOsyms();
+    int e1inputIndex = fst.getInputSymbolCount();
+    int e2inputIndex = e1inputIndex + 1;
 
-    int e1inputIndex = isyms.length;
-    int e2inputIndex = isyms.length + 1;
-
-    int e1outputIndex = osyms.length;
-    int e2outputIndex = osyms.length + 1;
+    int e1outputIndex = fst.getOutputSymbolCount();
+    int e2outputIndex = e1outputIndex + 1;
 
     int numStates = fst.getNumStates();
     for (int i = 0; i < numStates; i++) {
@@ -238,20 +249,20 @@ public class Compose {
                                                   : s.getNumArcs();
       for (int j = 0; j < numArcs; j++) {
         Arc a = s.getArc(j);
-        if ((label == 1) && (a.getOlabel() == 0)) {
+        if ((label == OUTPUT) && (a.getOlabel() == 0)) {
           a.setOlabel(e2outputIndex);
-        } else if ((label == 0) && (a.getIlabel() == 0)) {
+        } else if ((label == INPUT) && (a.getIlabel() == 0)) {
           a.setIlabel(e1inputIndex);
         }
       }
-      if (label == 0) {
+      if (label == INPUT) {
         if (fst instanceof ImmutableFst) {
           s.setArc(numArcs, new Arc(e2inputIndex, 0, semiring.one(),
                                     s));
         } else {
           s.addArc(new Arc(e2inputIndex, 0, semiring.one(), s));
         }
-      } else if (label == 1) {
+      } else if (label == OUTPUT) {
         if (fst instanceof ImmutableFst) {
           s.setArc(numArcs, new Arc(0, e1outputIndex, semiring.one(),
                                     s));

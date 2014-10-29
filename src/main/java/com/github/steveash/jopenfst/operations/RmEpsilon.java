@@ -195,8 +195,8 @@ public class RmEpsilon {
       }
     }
 
-    res.setIsyms(fst.getIsyms());
-    res.setOsyms(fst.getOsyms());
+    res.setInputSymbolsFrom(fst);
+    res.setOutputSymbolsFrom(fst);
 
     Connect.apply(res);
 

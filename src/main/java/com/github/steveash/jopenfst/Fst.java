@@ -13,6 +13,8 @@
 
 package com.github.steveash.jopenfst;
 
+import com.carrotsearch.hppc.ObjectIntMap;
+import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
 import java.io.File;
@@ -34,10 +36,9 @@ public class Fst {
   protected String[] isyms;
   protected String[] osyms;
   protected Semiring semiring;
+  protected ObjectIntMap<String> inputSymbolsMap;
+  protected ObjectIntMap<String> outputSymbolsMap;
 
-  /**
-   * Default Constructor
-   */
   public Fst() {
     states = new ArrayList<>();
   }
@@ -124,6 +125,10 @@ public class Fst {
     return isyms;
   }
 
+  public int getInputSymbolCount() {
+    return isyms.length;
+  }
+
   /**
    * Set the input symbols
    *
@@ -131,6 +136,15 @@ public class Fst {
    */
   public void setIsyms(String[] isyms) {
     this.isyms = isyms;
+    this.inputSymbolsMap = makeSymbolMap(isyms);
+  }
+
+  private ObjectIntMap<String> makeSymbolMap(String[] symbs) {
+    ObjectIntOpenHashMap<String> map = new ObjectIntOpenHashMap<String>(symbs.length);
+    for (int i = 0; i < symbs.length; i++) {
+      map.put(symbs[i], i);
+    }
+    return map;
   }
 
   /**
@@ -140,6 +154,10 @@ public class Fst {
     return osyms;
   }
 
+  public int getOutputSymbolCount() {
+    return osyms.length;
+  }
+
   /**
    * Set the output symbols
    *
@@ -147,6 +165,37 @@ public class Fst {
    */
   public void setOsyms(String[] osyms) {
     this.osyms = osyms;
+    this.outputSymbolsMap = makeSymbolMap(osyms);
+  }
+
+  public void setInputSymbolsFrom(Fst sourceInputSymbols) {
+    this.isyms = sourceInputSymbols.isyms;
+  }
+
+  public void setInputSymbolsFromThatOutput(Fst that) {
+    this.isyms = that.osyms;
+  }
+
+  public void setOutputSymbolsFrom(Fst sourceOutputSymbols) {
+    this.osyms = sourceOutputSymbols.osyms;
+  }
+
+  public void setOutputSymbolsFromThatInput(Fst that) {
+    this.osyms = that.isyms;
+  }
+
+  public int lookupInputSymbol(String symbol) {
+    return inputSymbolsMap.getOrDefault(symbol, -1);
+  }
+
+  public int lookupOutputSymbol(String symbol) {
+    return outputSymbolsMap.getOrDefault(symbol, -1);
+  }
+
+  public void throwIfThisOutputIsNotThatInput(Fst that) {
+    if (!Arrays.equals(this.osyms, that.isyms)) {
+      throw new IllegalArgumentException("Symbol tables don't match, cant compose " + this + " to " + that);
+    }
   }
 
   /**

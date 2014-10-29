@@ -18,8 +18,10 @@ import java.util.HashMap;
 /**
  * Several genearl use utility functions needed by the fst framework
  *
+ *
  * @author John Salatas <jsalatas@users.sourceforge.net>
  */
+@Deprecated // using guava for string splitting; using the symbol -> index maps in the Fst to do O(1) lookups instead of O(n) lookups
 public class Utils {
 
 //  /**

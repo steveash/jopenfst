@@ -119,8 +119,8 @@ public class NShortestPaths {
     }
     Semiring semiring = fstdet.getSemiring();
     Fst res = new Fst(semiring);
-    res.setIsyms(fstdet.getIsyms());
-    res.setOsyms(fstdet.getOsyms());
+    res.setInputSymbolsFrom(fstdet);
+    res.setOutputSymbolsFrom(fstdet);
 
     float[] d = shortestDistance(fstdet);
 

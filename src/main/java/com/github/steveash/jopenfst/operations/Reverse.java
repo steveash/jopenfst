@@ -49,8 +49,8 @@ public class Reverse {
     Fst res = new Fst(fst.getNumStates());
     res.setSemiring(semiring);
 
-    res.setIsyms(fst.getOsyms());
-    res.setOsyms(fst.getIsyms());
+    res.setInputSymbolsFromThatOutput(fst);
+    res.setOutputSymbolsFromThatInput(fst);
 
     State[] stateMap = new State[fst.getNumStates()];
     int numStates = fst.getNumStates();

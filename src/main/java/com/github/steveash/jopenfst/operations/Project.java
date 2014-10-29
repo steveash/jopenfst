@@ -27,9 +27,9 @@ public class Project {
    */
   public static void apply(Fst fst, ProjectType pType) {
     if (pType == ProjectType.INPUT) {
-      fst.setOsyms(fst.getIsyms());
+      fst.setOutputSymbolsFromThatInput(fst);
     } else if (pType == ProjectType.OUTPUT) {
-      fst.setIsyms(fst.getOsyms());
+      fst.setInputSymbolsFromThatOutput(fst);
     }
 
     int numStates = fst.getNumStates();
