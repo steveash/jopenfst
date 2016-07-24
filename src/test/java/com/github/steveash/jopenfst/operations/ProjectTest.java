@@ -136,7 +136,6 @@ public class ProjectTest {
 
   @Test
   public void testProject() {
-    System.out.println("Testing Project...");
     // Project on Input label
     Fst fst = createFst();
     Fst p = createPi();
@@ -149,8 +148,5 @@ public class ProjectTest {
     Project.apply(fst, ProjectType.OUTPUT);
     assertTrue(fst.equals(p));
 
-    System.out.println("Testing Project Completed!\n");
-
   }
-
 }

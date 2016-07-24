@@ -125,7 +125,6 @@ public class ArcSortTest {
 
   @Test
   public void testArcSort() {
-    System.out.println("Testing Arc Sort...");
     // Input label sort test
     Fst fst1 = createUnsorted();
     Fst fst2 = createIsorted();
@@ -139,8 +138,6 @@ public class ArcSortTest {
     assertTrue(!fst1.equals(fst2));
     ArcSort.apply(fst1, new OLabelCompare());
     assertTrue(fst1.equals(fst2));
-
-    System.out.println("Testing Arc Sort Completed!\n");
 
   }
 

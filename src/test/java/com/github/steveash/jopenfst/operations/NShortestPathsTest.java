@@ -34,7 +34,6 @@ public class NShortestPathsTest {
 
   @Test
   public void testNShortestPaths() {
-    System.out.println("Testing NShortestPaths...");
 
     Fst fst = Convert.importFst("data/tests/algorithms/shortestpath/A",
                                 new TropicalSemiring());
@@ -44,7 +43,5 @@ public class NShortestPathsTest {
     Fst fstNsp = NShortestPaths.get(fst, 6, true);
 
     assertTrue(nsp.equals(fstNsp));
-
-    System.out.println("Testing NShortestPaths Completed!\n");
   }
 }

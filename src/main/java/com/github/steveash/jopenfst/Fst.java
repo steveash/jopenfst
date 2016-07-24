@@ -16,6 +16,8 @@
 
 package com.github.steveash.jopenfst;
 
+import com.google.common.base.Preconditions;
+
 import com.carrotsearch.hppc.ObjectIntMap;
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.github.steveash.jopenfst.semiring.Semiring;
@@ -117,8 +119,22 @@ public class Fst {
    * @param state the state to be added
    */
   public void addState(State state) {
+
     this.states.add(state);
     state.id = states.size() - 1;
+  }
+
+  public void setState(int id, State state) {
+    state.setId(id);
+    // they provided the id so index properly
+    if (id >= this.states.size()) {
+      this.states.ensureCapacity(id + 1);
+      for (int i = states.size(); i <= id; i++) {
+        this.states.add(null);
+      }
+    }
+    Preconditions.checkState(this.states.get(id) == null, "cant write two states with ", id);
+    this.states.set(id, state);
   }
 
   /**
@@ -320,6 +336,14 @@ public class Fst {
     int numStates = states.size();
     for (int i = 0; i < numStates; i++) {
       states.get(i).id = i;
+    }
+  }
+
+  public void throwIfAnyNullStates() {
+    for (int i = 0; i < states.size(); i++) {
+      if (states.get(i) == null) {
+        throw new IllegalStateException("Cannot have a null state in an FST. State " + i);
+      }
     }
   }
 }

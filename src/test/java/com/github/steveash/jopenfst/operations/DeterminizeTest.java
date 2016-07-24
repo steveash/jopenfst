@@ -25,30 +25,26 @@ import com.github.steveash.jopenfst.FstInputOutput;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ *
  */
 public class DeterminizeTest {
 
+  private static final Logger log = LoggerFactory.getLogger(DeterminizeTest.class);
+
   @Test
   public void testDeterminize() {
-    System.out.println("Testing Determinization...");
     Fst fstA = Convert.importFst("data/tests/algorithms/determinize/A",
                                  new TropicalSemiring());
-    Fst determinized = FstInputOutput
-        .loadModel("data/tests/algorithms/determinize/fstdeterminize.fst.ser");
+    Fst determinized = Convert.importFst("data/tests/algorithms/determinize/expected",
+                                     new TropicalSemiring());
 
     Fst fstDeterminized = Determinize.get(fstA);
     assertTrue(determinized.equals(fstDeterminized));
-
-    System.out.println("Testing Determinization Completed!\n");
-  }
-
-  public static void main(String[] args) {
-    DeterminizeTest test = new DeterminizeTest();
-    test.testDeterminize();
   }
 }

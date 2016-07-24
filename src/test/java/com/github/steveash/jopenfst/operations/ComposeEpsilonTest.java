@@ -31,7 +31,6 @@ public class ComposeEpsilonTest {
 
   @Test
   public void testCompose() {
-    System.out.println("Testing Composition with Epsilons...");
     // Input label sort test
 
     Fst fstA = Convert.importFst("data/tests/algorithms/composeeps/A",
@@ -45,8 +44,5 @@ public class ComposeEpsilonTest {
     Fst fstComposed = Compose.get(fstA, fstB, new TropicalSemiring());
 
     assertTrue(fstC.equals(fstComposed));
-
-    System.out.println("Testing Composition with Epsilons Completed!\n");
   }
-
 }

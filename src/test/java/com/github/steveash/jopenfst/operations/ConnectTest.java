@@ -23,6 +23,8 @@ import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
 import org.junit.Test;
 
+import java.io.File;
+
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -32,21 +34,13 @@ public class ConnectTest {
 
   @Test
   public void testConnect() {
-    System.out.println("Testing Connect...");
     Fst fst = Convert.importFst("data/tests/algorithms/connect/A",
                                 new TropicalSemiring());
-    Fst connectSaved = FstInputOutput
-        .loadModel("data/tests/algorithms/connect/fstconnect.fst.ser");
+    Fst connectSaved = Convert.importFst("data/tests/algorithms/connect/expected",
+                                    new TropicalSemiring());
     Connect.apply(fst);
 
     assertTrue(connectSaved.equals(fst));
 
-    System.out.println("Testing Connect Completed!\n");
   }
-
-  public static void main(String[] args) {
-    ConnectTest test = new ConnectTest();
-    test.testConnect();
-  }
-
 }

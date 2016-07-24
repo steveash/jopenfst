@@ -214,7 +214,7 @@ public class Convert {
         State inputState = stateMap.get(inputStateId);
         if (inputState == null) {
           inputState = new State(semiring.zero());
-          fst.addState(inputState);
+          fst.setState(inputStateId, inputState);
           stateMap.put(inputStateId, inputState);
         }
 
@@ -234,7 +234,7 @@ public class Convert {
           State nextState = stateMap.get(nextStateId);
           if (nextState == null) {
             nextState = new State(semiring.zero());
-            fst.addState(nextState);
+            fst.setState(nextStateId, nextState);
             stateMap.put(nextStateId, nextState);
           }
           // Adding arc
@@ -261,7 +261,7 @@ public class Convert {
 
     fst.setIsyms(Utils.toStringArray(isyms));
     fst.setOsyms(Utils.toStringArray(osyms));
-
+    fst.throwIfAnyNullStates();
     return fst;
   }
 }

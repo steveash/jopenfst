@@ -106,6 +106,10 @@ public class State {
     return id;
   }
 
+  public void setId(int id) {
+    this.id = id;
+  }
+
   /**
    * Get the number of outgoing arcs
    */

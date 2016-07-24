@@ -1,0 +1,29 @@
+0	Infinity
+1	Infinity
+2	Infinity
+3	Infinity
+4	Infinity
+5	Infinity
+6	1.0
+7	Infinity
+8	Infinity
+9	Infinity
+10	Infinity
+11	Infinity
+12	Infinity
+0	1	a	a	1.0
+1	2	b	b	2.0
+2	3	a	b	3.0
+2	5	a	b	5.0
+3	1	c	a	1.0
+3	4	c	c	1.0
+4	7	a	c	1.0
+5	6	b	a	1.0
+6	9	a	a	1.0
+7	8	c	c	2.0
+8	4	b	a	1.0
+9	10	b	b	1.0
+10	1	a	a	1.0
+10	11	a	c	2.0
+11	10	c	b	1.0
+11	12	a	a	1.0

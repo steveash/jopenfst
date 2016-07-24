@@ -47,9 +47,7 @@ public class ImportTest {
     fst1.saveModel(tempFile);
 
     Fst fst2 = FstInputOutput.loadModel(tempFile);
-    Fst fst3 = FstInputOutput.loadModel("data/openfst/basic.fst.ser");
 
     assertTrue(fst1.equals(fst2));
-    assertTrue(fst2.equals(fst3));
   }
 }

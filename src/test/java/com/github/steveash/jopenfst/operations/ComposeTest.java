@@ -23,6 +23,7 @@ import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
 import org.junit.Test;
 
+import static com.github.steveash.jopenfst.FstInputOutput.loadModel;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -37,18 +38,16 @@ public class ComposeTest {
 
   @Test
   public void testCompose() {
-    System.out.println("Testing Composition...");
     Fst fstA = Convert.importFst("data/tests/algorithms/compose/A",
                                  new TropicalSemiring());
     Fst fstB = Convert.importFst("data/tests/algorithms/compose/B",
                                  new TropicalSemiring());
-    Fst composed = FstInputOutput
-        .loadModel("data/tests/algorithms/compose/fstcompose.fst.ser");
+    Fst composed = Convert.importFst("data/tests/algorithms/compose/expected",
+                                     new TropicalSemiring());
+//        .loadModel("data/tests/algorithms/compose/fstcompose.fst.ser");
 
     Fst fstComposed = Compose.get(fstA, fstB, new TropicalSemiring());
 
     assertTrue(composed.equals(fstComposed));
-
-    System.out.println("Testing Composition Completed!\n");
   }
 }

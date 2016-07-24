@@ -35,19 +35,15 @@ public class ReverseTest {
 
   @Test
   public void testReverse() {
-    System.out.println("Testing Reverse...");
     // Input label sort test
 
     Fst fst = Convert.importFst("data/tests/algorithms/reverse/A",
                                 new TropicalSemiring());
-    Fst fstB = FstInputOutput
-        .loadModel("data/tests/algorithms/reverse/fstreverse.fst.ser");
+    Fst fstB = Convert.importFst("data/tests/algorithms/reverse/expected",
+                                    new TropicalSemiring());
 
     Fst fstReversed = Reverse.get(fst);
 
     assertTrue(fstB.equals(fstReversed));
-
-    System.out.println("Testing Reverse Completed!\n");
   }
-
 }
