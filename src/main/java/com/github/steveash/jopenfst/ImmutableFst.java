@@ -19,7 +19,10 @@
  */
 package com.github.steveash.jopenfst;
 
+import com.github.steveash.jopenfst.semiring.Semiring;
+
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -53,50 +56,40 @@ public class ImmutableFst extends Fst {
    * @param numStates the number of fst's states
    * @see FstInputOutput#loadImmutableModel(String)
    */
-  ImmutableFst(int numStates) {
-    super(0);
+  ImmutableFst(int numStates, Semiring semiring, SymbolTable isym, SymbolTable osym) {
+    super(new ArrayList<State>(numStates), semiring, isym, osym);
     this.numStates = numStates;
     this.states = new ImmutableState[numStates];
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.Fst#getNumStates()
-   */
   @Override
   public int getNumStates() {
     return this.numStates;
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.Fst#getState(int)
-   */
   @Override
   public ImmutableState getState(int index) {
     return states[index];
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.Fst#addState(edu.cmu.sphinx.fst.State)
-   */
   @Override
-  public void addState(State state) {
-    throw new IllegalArgumentException("You cannot modify an ImmutableFst.");
+  public State addState(State state) {
+    throw throwMutate();
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.Fst#saveModel(java.lang.String)
-   */
+  @Override
+  public State addState() {
+    throw throwMutate();
+  }
+
+  @Override
+  public State addStartState() {
+    throw throwMutate();
+  }
+
   @Override
   public void saveModel(String filename) throws IOException {
-    throw new IllegalArgumentException("You cannot serialize an ImmutableFst.");
+    throwMutate();
   }
 
   //
@@ -113,26 +106,16 @@ public class ImmutableFst extends Fst {
 //    }
 //  }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.Fst#deleteState(edu.cmu.sphinx.fst.State)
-   */
   @Override
   public void deleteState(State state) {
-    throw new IllegalArgumentException("You cannot modify an ImmutableFst.");
+    throwMutate();
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.Fst#toString()
-   */
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("Fst(start=").append(start).append(", isyms=").append(Arrays.toString(isyms)).append(", osyms=").append(
-        Arrays.toString(osyms)).append(", semiring=").append(semiring).append(")\n");
+    sb.append("Fst(start=").append(start).append(", isyms=").append(inputSymbols).append(", osyms=").append(
+        outputSymbols).append(", semiring=").append(semiring).append(")\n");
     int numStates = states.length;
     for (ImmutableState s : states) {
       sb.append("  ").append(s).append("\n");
@@ -164,4 +147,7 @@ public class ImmutableFst extends Fst {
     return true;
   }
 
+  private static IllegalArgumentException throwMutate() {
+    throw new IllegalArgumentException("You cannot modify an ImmutableFst.");
+  }
 }

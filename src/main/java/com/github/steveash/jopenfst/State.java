@@ -16,6 +16,8 @@
 
 package com.github.steveash.jopenfst;
 
+import com.google.common.collect.Lists;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -36,24 +38,24 @@ public class State {
   private float fnlWeight;
 
   // Outgoing arcs
-  private ArrayList<Arc> arcs = null;
+  private final ArrayList<Arc> arcs;
 
-  // initial number of arcs
+  // initial number of arcs; this is only used during deserialization and should be ignored otherwise
   protected int initialNumArcs = -1;
 
   /**
    * Default Constructor
    */
   protected State() {
-    arcs = new ArrayList<>();
+    arcs = Lists.newArrayList();
   }
 
   /**
    * Constructor specifying the state's final weight
    */
   public State(float fnlWeight) {
-    this();
     this.fnlWeight = fnlWeight;
+    this.arcs = Lists.newArrayList();
   }
 
   /**
@@ -62,9 +64,7 @@ public class State {
    */
   public State(int initialNumArcs) {
     this.initialNumArcs = initialNumArcs;
-    if (initialNumArcs > 0) {
-      arcs = new ArrayList<>(initialNumArcs);
-    }
+    arcs = Lists.newArrayListWithCapacity(initialNumArcs);
   }
 
   /**
@@ -79,15 +79,6 @@ public class State {
    */
   public float getFinalWeight() {
     return fnlWeight;
-  }
-
-  /**
-   * Set the state's arcs ArrayList
-   *
-   * @param arcs the arcs ArrayList to set
-   */
-  public void setArcs(ArrayList<Arc> arcs) {
-    this.arcs = arcs;
   }
 
   /**
@@ -139,42 +130,6 @@ public class State {
   /*
    * (non-Javadoc)
    *
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    State other = (State) obj;
-    if (id != other.id) {
-      return false;
-    }
-    if (!(fnlWeight == other.fnlWeight)) {
-      if (Float.floatToIntBits(fnlWeight) != Float
-          .floatToIntBits(other.fnlWeight)) {
-        return false;
-      }
-    }
-    if (arcs == null) {
-      if (other.arcs != null) {
-        return false;
-      }
-    } else if (!arcs.equals(other.arcs)) {
-      return false;
-    }
-    return true;
-  }
-
-  /*
-   * (non-Javadoc)
-   *
    * @see java.lang.Object#toString()
    */
   @Override
@@ -192,20 +147,6 @@ public class State {
     return this.arcs.remove(index);
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.lang.Object#hashCode()
-   */
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + id;
-    // result = prime * result + Float.floatToIntBits(fnlWeight);
-    // result = prime * result + ((arcs == null) ? 0 : arcs.hashCode());
-    return result;
-  }
 
   /**
    * Set an arc at the specified position in the arcs' ArrayList.
@@ -217,4 +158,32 @@ public class State {
     arcs.set(index, arc);
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    State state = (State) o;
+
+    if (id != state.id) {
+      return false;
+    }
+    if (Float.compare(state.fnlWeight, fnlWeight) != 0) {
+      return false;
+    }
+    return arcs != null ? arcs.equals(state.arcs) : state.arcs == null;
+
+  }
+
+  @Override
+  public int hashCode() {
+    int result = id;
+    result = 31 * result + (fnlWeight != +0.0f ? Float.floatToIntBits(fnlWeight) : 0);
+    result = 31 * result + (arcs != null ? arcs.hashCode() : 0);
+    return result;
+  }
 }

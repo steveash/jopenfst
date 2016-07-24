@@ -18,8 +18,10 @@ package com.github.steveash.jopenfst;
 
 import com.google.common.base.Preconditions;
 
-import com.carrotsearch.hppc.ObjectIntMap;
-import com.carrotsearch.hppc.ObjectIntOpenHashMap;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+
+import com.github.steveash.jopenfst.semiring.LogSemiring;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
 import java.io.File;
@@ -36,16 +38,20 @@ import java.util.Arrays;
  */
 public class Fst {
 
-  protected ArrayList<State> states = null;
+  public static final String EPS = "<eps>";
+
+  protected final Semiring semiring;
+  protected ArrayList<State> states;
   protected State start;
-  protected String[] isyms;
-  protected String[] osyms;
-  protected Semiring semiring;
-  protected ObjectIntMap<String> inputSymbolsMap;
-  protected ObjectIntMap<String> outputSymbolsMap;
+  protected SymbolTable inputSymbols;
+  protected SymbolTable outputSymbols;
 
   public Fst() {
-    states = new ArrayList<>();
+    this(makeDefaultRing(), new SymbolTable(), new SymbolTable());
+  }
+
+  private static Semiring makeDefaultRing() {
+    return new LogSemiring();
   }
 
   /**
@@ -55,9 +61,11 @@ public class Fst {
    * @param numStates the initial capacity
    */
   public Fst(int numStates) {
-    if (numStates > 0) {
-      states = new ArrayList<>(numStates);
-    }
+    this(new ArrayList<State>(numStates), makeDefaultRing(), new SymbolTable(), new SymbolTable());
+  }
+
+  public Fst(int numStates, Semiring semiring) {
+    this(new ArrayList<State>(numStates), semiring, new SymbolTable(), new SymbolTable());
   }
 
   /**
@@ -66,8 +74,19 @@ public class Fst {
    * @param s the fst's semiring
    */
   public Fst(Semiring s) {
-    this();
-    this.semiring = s;
+    this(s, new SymbolTable(), new SymbolTable());
+  }
+
+  public Fst(Semiring semiring, SymbolTable inputSymbols, SymbolTable outputSymbols) {
+    this(Lists.<State>newArrayList(), semiring, inputSymbols, outputSymbols);
+  }
+
+  protected Fst(ArrayList<State> states, Semiring semiring, SymbolTable inputSymbols,
+             SymbolTable outputSymbols) {
+    this.states = states;
+    this.semiring = semiring;
+    this.inputSymbols = inputSymbols;
+    this.outputSymbols = outputSymbols;
   }
 
   /**
@@ -85,21 +104,19 @@ public class Fst {
   }
 
   /**
-   * Set the Semiring
-   *
-   * @param semiring the semiring to set
-   */
-  public void setSemiring(Semiring semiring) {
-    this.semiring = semiring;
-  }
-
-  /**
    * Set the initial state
    *
    * @param start the initial state
    */
   public void setStart(State start) {
     this.start = start;
+  }
+
+  public State addStartState() {
+    Preconditions.checkState(start == null, "cant add more than one start state");
+    State newStart = addState();
+    setStart(newStart);
+    return newStart;
   }
 
   /**
@@ -118,10 +135,11 @@ public class Fst {
    *
    * @param state the state to be added
    */
-  public void addState(State state) {
+  public State addState(State state) {
 
     this.states.add(state);
     state.id = states.size() - 1;
+    return state;
   }
 
   public void setState(int id, State state) {
@@ -137,82 +155,55 @@ public class Fst {
     this.states.set(id, state);
   }
 
-  /**
-   * Get the input symbols' array
-   */
-  public String[] getIsyms() {
-    return isyms;
+  public State addState() {
+    State s = new State();
+    this.states.add(s);
+    s.id = states.size() - 1; // not thread safe
+    return s;
+  }
+
+  public SymbolTable getInputSymbols() {
+    return inputSymbols;
+  }
+
+  public SymbolTable getOutputSymbols() {
+    return outputSymbols;
   }
 
   public int getInputSymbolCount() {
-    return isyms.length;
-  }
-
-  /**
-   * Set the input symbols
-   *
-   * @param isyms the isyms to set
-   */
-  public void setIsyms(String[] isyms) {
-    this.isyms = isyms;
-    this.inputSymbolsMap = makeSymbolMap(isyms);
-  }
-
-  private ObjectIntMap<String> makeSymbolMap(String[] symbs) {
-    ObjectIntOpenHashMap<String> map = new ObjectIntOpenHashMap<String>(symbs.length);
-    for (int i = 0; i < symbs.length; i++) {
-      map.put(symbs[i], i);
-    }
-    return map;
-  }
-
-  /**
-   * Get the output symbols' array
-   */
-  public String[] getOsyms() {
-    return osyms;
+    return inputSymbols.size();
   }
 
   public int getOutputSymbolCount() {
-    return osyms.length;
-  }
-
-  /**
-   * Set the output symbols
-   *
-   * @param osyms the osyms to set
-   */
-  public void setOsyms(String[] osyms) {
-    this.osyms = osyms;
-    this.outputSymbolsMap = makeSymbolMap(osyms);
+    return outputSymbols.size();
   }
 
   public void setInputSymbolsFrom(Fst sourceInputSymbols) {
-    this.isyms = sourceInputSymbols.isyms;
+    this.inputSymbols = new SymbolTable(sourceInputSymbols.inputSymbols);
   }
 
   public void setInputSymbolsFromThatOutput(Fst that) {
-    this.isyms = that.osyms;
+    this.inputSymbols = new SymbolTable(that.outputSymbols);
   }
 
   public void setOutputSymbolsFrom(Fst sourceOutputSymbols) {
-    this.osyms = sourceOutputSymbols.osyms;
+    this.outputSymbols = new SymbolTable(sourceOutputSymbols.outputSymbols);
   }
 
   public void setOutputSymbolsFromThatInput(Fst that) {
-    this.osyms = that.isyms;
+    this.outputSymbols = new SymbolTable(that.inputSymbols);
   }
 
   public int lookupInputSymbol(String symbol) {
-    return inputSymbolsMap.getOrDefault(symbol, -1);
+    return inputSymbols.get(symbol);
   }
 
   public int lookupOutputSymbol(String symbol) {
-    return outputSymbolsMap.getOrDefault(symbol, -1);
+    return outputSymbols.get(symbol);
   }
 
   public void throwIfThisOutputIsNotThatInput(Fst that) {
-    if (!Arrays.equals(this.osyms, that.isyms)) {
+    if (!this.outputSymbols.equals(that.inputSymbols)) {
       throw new IllegalArgumentException("Symbol tables don't match, cant compose " + this + " to " + that);
     }
   }
@@ -231,53 +222,10 @@ public class Fst {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    Fst other = (Fst) obj;
-    if (!Arrays.equals(isyms, other.isyms)) {
-      return false;
-    }
-    if (!Arrays.equals(osyms, other.osyms)) {
-      return false;
-    }
-    if (start == null) {
-      if (other.start != null) {
-        return false;
-      }
-    } else if (!start.equals(other.start)) {
-      return false;
-    }
-    if (states == null) {
-      if (other.states != null) {
-        return false;
-      }
-    } else if (!states.equals(other.states)) {
-      return false;
-    }
-    if (semiring == null) {
-      if (other.semiring != null) {
-        return false;
-      }
-    } else if (!semiring.equals(other.semiring)) {
-      return false;
-    }
-    return true;
-  }
-
-  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("Fst(start=").append(start).append(", isyms=").append(Arrays.toString(isyms)).append(", osyms=").append(
-        Arrays.toString(osyms)).append(", semiring=").append(semiring).append(")\n");
-    int numStates = states.size();
+    sb.append("Fst(start=").append(start).append(", isyms=").append(inputSymbols).append(", osyms=").append(
+        outputSymbols).append(", semiring=").append(semiring).append(")\n");
     for (State s : states) {
       sb.append("  ").append(s).append("\n");
       int numArcs = s.getNumArcs();
@@ -286,7 +234,6 @@ public class Fst {
         sb.append("    ").append(a).append("\n");
       }
     }
-
     return sb.toString();
   }
 
@@ -345,5 +292,42 @@ public class Fst {
         throw new IllegalStateException("Cannot have a null state in an FST. State " + i);
       }
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    Fst fst = (Fst) o;
+
+    if (semiring != null ? !semiring.equals(fst.semiring) : fst.semiring != null) {
+      return false;
+    }
+    if (states != null ? !states.equals(fst.states) : fst.states != null) {
+      return false;
+    }
+    if (start != null ? !start.equals(fst.start) : fst.start != null) {
+      return false;
+    }
+    if (inputSymbols != null ? !inputSymbols.equals(fst.inputSymbols) : fst.inputSymbols != null) {
+      return false;
+    }
+    return outputSymbols != null ? outputSymbols.equals(fst.outputSymbols) : fst.outputSymbols == null;
+
+  }
+
+  @Override
+  public int hashCode() {
+    int result = semiring != null ? semiring.hashCode() : 0;
+    result = 31 * result + (states != null ? states.hashCode() : 0);
+    result = 31 * result + (start != null ? start.hashCode() : 0);
+    result = 31 * result + (inputSymbols != null ? inputSymbols.hashCode() : 0);
+    result = 31 * result + (outputSymbols != null ? outputSymbols.hashCode() : 0);
+    return result;
   }
 }

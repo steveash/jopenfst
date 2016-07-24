@@ -17,10 +17,12 @@
 package com.github.steveash.jopenfst;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 import com.google.common.io.ByteSink;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
 
+import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
 import java.io.File;
@@ -29,6 +31,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import static com.google.common.io.Resources.asByteSource;
@@ -47,17 +50,30 @@ public class FstInputOutput {
    * @param in the ObjectInputStream. It should be already be initialized by the caller.
    * @return the deserialized symbol map
    */
-  public static String[] readStringMap(ObjectInputStream in)
+  public static SymbolTable readStringMap(ObjectInputStream in)
       throws IOException, ClassNotFoundException {
 
     int mapSize = in.readInt();
-    String[] map = new String[mapSize];
+    SymbolTable syms = new SymbolTable();
     for (int i = 0; i < mapSize; i++) {
-      String sym = (String) in.readObject();
-      map[i] = sym;
+      String sym = in.readUTF();
+      int index = in.readInt();
+      syms.put(sym, index);
     }
+    return syms;
+  }
 
-    return map;
+  public static SymbolTable readStringMapOld(ObjectInputStream in)
+      throws IOException, ClassNotFoundException {
+
+    int mapSize = in.readInt();
+    SymbolTable syms = new SymbolTable();
+    for (int i = 0; i < mapSize; i++) {
+      String sym = in.readUTF();
+      int index = i;
+      syms.put(sym, index);
+    }
+    return syms;
   }
 
   /**
@@ -67,18 +83,27 @@ public class FstInputOutput {
    */
   private static Fst readFst(ObjectInputStream in) throws IOException,
                                                           ClassNotFoundException {
-    String[] is = readStringMap(in);
-    String[] os = readStringMap(in);
+    SymbolTable is = readStringMap(in);
+    SymbolTable os = readStringMap(in);
+    return readFstWithTables(in, is, os);
+  }
+
+  private static Fst readFstOld(ObjectInputStream in) throws IOException,
+                                                          ClassNotFoundException {
+    SymbolTable is = readStringMapOld(in);
+    SymbolTable os = readStringMapOld(in);
+    return readFstWithTables(in, is, os);
+  }
+
+  private static Fst readFstWithTables(ObjectInputStream in, SymbolTable is, SymbolTable os)
+      throws IOException, ClassNotFoundException {
     int startid = in.readInt();
     Semiring semiring = (Semiring) in.readObject();
     int numStates = in.readInt();
-    Fst res = new Fst(numStates);
-    res.isyms = is;
-    res.osyms = os;
-    res.semiring = semiring;
+    Fst res = new Fst(new ArrayList<State>(numStates), semiring, is, os);
     for (int i = 0; i < numStates; i++) {
       int numArcs = in.readInt();
-      State s = new State(numArcs + 1);
+      State s = new State(numArcs);
       float f = in.readFloat();
       if (f == res.semiring.zero()) {
         f = res.semiring.zero();
@@ -94,7 +119,7 @@ public class FstInputOutput {
     numStates = res.getNumStates();
     for (int i = 0; i < numStates; i++) {
       State s1 = res.getState(i);
-      for (int j = 0; j < s1.initialNumArcs - 1; j++) {
+      for (int j = 0; j < s1.initialNumArcs; j++) {
         Arc a = new Arc();
         a.setIlabel(in.readInt());
         a.setOlabel(in.readInt());
@@ -121,9 +146,22 @@ public class FstInputOutput {
     return loadModelFromSource(bs);
   }
 
+  public static Fst loadModelOld(String resourceName) {
+    ByteSource bs = asByteSource(getResource(resourceName));
+    return loadModelOldFromSource(bs);
+  }
+
   private static Fst loadModelFromSource(ByteSource bs) {
     try (ObjectInputStream ois = new ConvertingObjectInputStream(bs.openBufferedStream())) {
       return readFst(ois);
+    } catch (Exception e) {
+      throw Throwables.propagate(e);
+    }
+  }
+
+  private static Fst loadModelOldFromSource(ByteSource bs) {
+    try (ObjectInputStream ois = new ConvertingObjectInputStream(bs.openBufferedStream())) {
+      return readFstOld(ois);
     } catch (Exception e) {
       throw Throwables.propagate(e);
     }
@@ -135,11 +173,12 @@ public class FstInputOutput {
    * @param out the ObjectOutputStream. It should be already be initialized by the caller.
    * @param map the symbol map to serialize
    */
-  private static void writeStringMap(ObjectOutputStream out, String[] map)
+  private static void writeStringMap(ObjectOutputStream out, SymbolTable map)
       throws IOException {
-    out.writeInt(map.length);
-    for (int i = 0; i < map.length; i++) {
-      out.writeObject(map[i]);
+    out.writeInt(map.size());
+    for (ObjectIntCursor<String> cursor : map) {
+      out.writeUTF(cursor.key);
+      out.writeInt(cursor.value);
     }
   }
 
@@ -149,8 +188,8 @@ public class FstInputOutput {
    * @param out the ObjectOutputStream. It should be already be initialized by the caller.
    */
   private static void writeFst(Fst fst, ObjectOutputStream out) throws IOException {
-    writeStringMap(out, fst.isyms);
-    writeStringMap(out, fst.osyms);
+    writeStringMap(out, fst.getInputSymbols());
+    writeStringMap(out, fst.getOutputSymbols());
     out.writeInt(fst.states.indexOf(fst.start));
 
     out.writeObject(fst.semiring);
@@ -194,18 +233,15 @@ public class FstInputOutput {
    */
   private static ImmutableFst readImmutableFst(ObjectInputStream in)
       throws IOException, ClassNotFoundException {
-    String[] is = readStringMap(in);
-    String[] os = readStringMap(in);
+    SymbolTable is = readStringMap(in);
+    SymbolTable os = readStringMap(in);
     int startid = in.readInt();
     Semiring semiring = (Semiring) in.readObject();
     int numStates = in.readInt();
-    ImmutableFst res = new ImmutableFst(numStates);
-    res.isyms = is;
-    res.osyms = os;
-    res.semiring = semiring;
+    ImmutableFst res = new ImmutableFst(numStates, semiring, is, os);
     for (int i = 0; i < numStates; i++) {
       int numArcs = in.readInt();
-      ImmutableState s = new ImmutableState(numArcs + 1);
+      ImmutableState s = new ImmutableState(numArcs);
       float f = in.readFloat();
       if (f == res.semiring.zero()) {
         f = res.semiring.zero();
@@ -221,7 +257,7 @@ public class FstInputOutput {
     numStates = res.states.length;
     for (int i = 0; i < numStates; i++) {
       ImmutableState s1 = res.states[i];
-      for (int j = 0; j < s1.initialNumArcs - 1; j++) {
+      for (int j = 0; j < s1.initialNumArcs; j++) {
         Arc a = new Arc();
         a.setIlabel(in.readInt());
         a.setOlabel(in.readInt());

@@ -19,16 +19,17 @@ package com.github.steveash.jopenfst.operations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.ImmutableFst;
 import com.github.steveash.jopenfst.State;
+import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 import static com.github.steveash.jopenfst.operations.Compose.AugmentLabels.INPUT;
@@ -44,7 +45,7 @@ import static com.github.steveash.jopenfst.operations.Compose.AugmentLabels.OUTP
 
 public class Compose {
 
-  public enum AugmentLabels { INPUT, OUTPUT }
+  public enum AugmentLabels {INPUT, OUTPUT}
 
   /**
    * Default Constructor
@@ -64,12 +65,12 @@ public class Compose {
    */
   public static Fst compose(Fst fst1, Fst fst2, Semiring semiring,
                             boolean sorted) {
-    fst1.throwIfThisOutputIsNotThatInput(fst2);
+//    fst1.throwIfThisOutputIsNotThatInput(fst2);
 
-    Fst res = new Fst(semiring);
+    Fst res = new Fst(semiring, new SymbolTable(fst1.getInputSymbols()), new SymbolTable(fst2.getOutputSymbols()));
 
-    HashMap<Pair<State, State>, State> stateMap = Maps.newHashMap();
-    ArrayList<Pair<State, State>> queue = Lists.newArrayList();
+    HashMap<Pair<Integer, Integer>, Integer> stateMap = Maps.newHashMap();
+    ArrayList<Pair<Integer, Integer>> queue = Lists.newArrayList();
 
     State s1 = fst1.getStart();
     State s2 = fst2.getStart();
@@ -78,20 +79,20 @@ public class Compose {
       throw new IllegalArgumentException("No initial state in one of " + fst1 + " or " + fst2);
     }
 
-    Pair<State, State> p = Pair.of(s1, s2);
+    Pair<Integer, Integer> p = Pair.of(s1.getId(), s2.getId());
     State s = new State(semiring.times(s1.getFinalWeight(),
                                        s2.getFinalWeight()));
 
     res.addState(s);
     res.setStart(s);
-    stateMap.put(p, s);
+    stateMap.put(p, s.getId());
     queue.add(p);
 
     while (queue.size() > 0) {
       p = queue.remove(0);
-      s1 = p.getLeft();
-      s2 = p.getRight();
-      s = stateMap.get(p);
+      s1 = fst1.getState(p.getLeft());
+      s2 = fst2.getState(p.getRight());
+      s = res.getState(stateMap.get(p));
       int numArcs1 = s1.getNumArcs();
       int numArcs2 = s2.getNumArcs();
       for (int i = 0; i < numArcs1; i++) {
@@ -104,27 +105,27 @@ public class Compose {
           if (a1.getOlabel() == a2.getIlabel()) {
             State nextState1 = a1.getNextState();
             State nextState2 = a2.getNextState();
-            Pair<State, State> nextPair = Pair.of(nextState1, nextState2);
-            State nextState = stateMap.get(nextPair);
+            Pair<Integer, Integer> nextPair = Pair.of(nextState1.getId(), nextState2.getId());
+            Integer nextState = stateMap.get(nextPair);
+            State realNextState;
             if (nextState == null) {
-              nextState = new State(semiring.times(
+              realNextState = new State(semiring.times(
                   nextState1.getFinalWeight(),
                   nextState2.getFinalWeight()));
-              res.addState(nextState);
-              stateMap.put(nextPair, nextState);
+              res.addState(realNextState);
+              stateMap.put(nextPair, realNextState.getId());
               queue.add(nextPair);
+            } else {
+              realNextState = res.getState(nextState);
             }
             Arc a = new Arc(a1.getIlabel(), a2.getOlabel(),
                             semiring.times(a1.getWeight(), a2.getWeight()),
-                            nextState);
+                            realNextState);
             s.addArc(a);
           }
         }
       }
     }
-
-    res.setInputSymbolsFrom(fst1);
-    res.setOutputSymbolsFrom(fst2);
 
     return res;
   }
@@ -145,7 +146,7 @@ public class Compose {
 
     fst1.throwIfThisOutputIsNotThatInput(fst2);
 
-    Fst filter = getFilter(fst1.getOsyms(), semiring);
+    Fst filter = getFilter(fst1.getOutputSymbols(), semiring);
     augment(1, fst1, semiring);
     augment(0, fst2, semiring);
 
@@ -162,31 +163,33 @@ public class Compose {
    *
    * See: M. Mohri, "Weighted automata algorithms", Handbook of Weighted Automata. Springer, pp. 213-250, 2009.
    *
-   * @param syms     the gilter's input/output symbols
+   * @param table    the filter's input/output symbols
    * @param semiring the semiring to use in the operation
    * @return the filter
    */
-  public static Fst getFilter(String[] syms, Semiring semiring) {
-    Fst filter = new Fst(semiring);
+  public static Fst getFilter(SymbolTable table, Semiring semiring) {
+    table = new SymbolTable(table);
+    Fst filter = new Fst(semiring, table, table);
 
-    int e1index = syms.length;
-    int e2index = syms.length + 1;
-
-    filter.setIsyms(syms);
-    filter.setOsyms(syms);
+    int e1index = table.addNewUnique("eps1");
+    int e2index = table.addNewUnique("eps2");
 
     // State 0
-    State s0 = new State(syms.length + 3);
+    State s0 = new State(table.size());
     s0.setFinalWeight(semiring.one());
-    State s1 = new State(syms.length);
+    State s1 = new State(table.size());
     s1.setFinalWeight(semiring.one());
-    State s2 = new State(syms.length);
+    State s2 = new State(table.size());
     s2.setFinalWeight(semiring.one());
     filter.addState(s0);
     s0.addArc(new Arc(e2index, e1index, semiring.one(), s0));
     s0.addArc(new Arc(e1index, e1index, semiring.one(), s1));
     s0.addArc(new Arc(e2index, e2index, semiring.one(), s2));
-    for (int i = 1; i < syms.length; i++) {
+    for (ObjectIntCursor<String> cursor : table) {
+      int i = cursor.value;
+      if (cursor.key.equalsIgnoreCase(Fst.EPS) || i == e1index || i == e2index) {
+        continue;
+      }
       s0.addArc(new Arc(i, i, semiring.one(), s0));
     }
     filter.setStart(s0);
@@ -194,14 +197,22 @@ public class Compose {
     // State 1
     filter.addState(s1);
     s1.addArc(new Arc(e1index, e1index, semiring.one(), s1));
-    for (int i = 1; i < syms.length; i++) {
+    for (ObjectIntCursor<String> cursor : table) {
+      int i = cursor.value;
+      if (cursor.key.equalsIgnoreCase(Fst.EPS) || i == e1index || i == e2index) {
+        continue;
+      }
       s1.addArc(new Arc(i, i, semiring.one(), s0));
     }
 
     // State 2
     filter.addState(s2);
     s2.addArc(new Arc(e2index, e2index, semiring.one(), s2));
-    for (int i = 1; i < syms.length; i++) {
+    for (ObjectIntCursor<String> cursor : table) {
+      int i = cursor.value;
+      if (cursor.key.equalsIgnoreCase(Fst.EPS) || i == e1index || i == e2index) {
+        continue;
+      }
       s2.addArc(new Arc(i, i, semiring.one(), s0));
     }
 
@@ -212,13 +223,13 @@ public class Compose {
    * Augments the labels of an Fst in order to use it for composition avoiding multiple epsilon paths in the resulting
    * Fst
    *
-   * Augment can be applied to both {@link com.github.steveash.jopenfst.Fst} and {@link com.github.steveash.jopenfst.ImmutableFst}, as
-   * immutable fsts hold an additional null arc for that operation
+   * Augment can be applied to both {@link com.github.steveash.jopenfst.Fst} and {@link
+   * com.github.steveash.jopenfst.ImmutableFst}, as immutable fsts hold an additional null arc for that operation
    *
-   * @param label    constant denoting if the augment should take place on input or output labels For value equal to 0
-   *                 augment will take place for input labels For value equal to 1 augment will take place for output
-   *                 labels
-   * @param fst      the fst to augment
+   * @param whichLabels constant denoting if the augment should take place on input or output labels For value equal to
+   *                    0 augment will take place for input labels For value equal to 1 augment will take place for
+   *                    output labels
+   * @param fst         the fst to augment
    */
   public static void augment(AugmentLabels whichLabels, Fst fst) {
     augment(whichLabels, fst, fst.getSemiring());

@@ -49,8 +49,7 @@ public class Reverse {
 
     Semiring semiring = fst.getSemiring();
 
-    Fst res = new Fst(fst.getNumStates());
-    res.setSemiring(semiring);
+    Fst res = new Fst(fst.getNumStates(), semiring);
 
     res.setInputSymbolsFromThatOutput(fst);
     res.setOutputSymbolsFromThatInput(fst);
