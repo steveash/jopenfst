@@ -21,18 +21,14 @@ package com.github.steveash.jopenfst;
 
 import com.github.steveash.jopenfst.semiring.Semiring;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * An immutable finite state transducer implementation.
- *
- * Holds a fixed size array of {@link ImmutableState} objects not allowing additions/deletions
- *
  * @author John Salatas <jsalatas@users.sourceforge.net>
  */
-public class ImmutableFst extends Fst {
+@Deprecated //dont use this until I refactor everything
+public class ImmutableFst extends MutableFst {
 
   protected ImmutableState[] states = null;
   protected int numStates;
@@ -42,7 +38,6 @@ public class ImmutableFst extends Fst {
    *
    * An ImmutableFst cannot be created directly. It needs to be deserialized.
    *
-   * @see FstInputOutput#loadImmutableModel(String)
    */
   ImmutableFst() {
 
@@ -54,7 +49,6 @@ public class ImmutableFst extends Fst {
    * An ImmutableFst cannot be created directly. It needs to be deserialized.
    *
    * @param numStates the number of fst's states
-   * @see FstInputOutput#loadImmutableModel(String)
    */
   ImmutableFst(int numStates, Semiring semiring, SymbolTable isym, SymbolTable osym) {
     super(new ArrayList<State>(numStates), semiring, isym, osym);
@@ -63,7 +57,7 @@ public class ImmutableFst extends Fst {
   }
 
   @Override
-  public int getNumStates() {
+  public int getStateCount() {
     return this.numStates;
   }
 
@@ -78,18 +72,13 @@ public class ImmutableFst extends Fst {
   }
 
   @Override
-  public State addState() {
+  public State newState() {
     throw throwMutate();
   }
 
   @Override
-  public State addStartState() {
+  public State newStartState() {
     throw throwMutate();
-  }
-
-  @Override
-  public void saveModel(String filename) throws IOException {
-    throwMutate();
   }
 
   //
@@ -106,16 +95,12 @@ public class ImmutableFst extends Fst {
 //    }
 //  }
 
-  @Override
-  public void deleteState(State state) {
-    throwMutate();
-  }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("Fst(start=").append(start).append(", isyms=").append(inputSymbols).append(", osyms=").append(
-        outputSymbols).append(", semiring=").append(semiring).append(")\n");
+    sb.append("Fst(start=").append(getStartState()).append(", isyms=").append(getInputSymbols()).append(", osyms=").append(
+        getOutputSymbols()).append(", semiring=").append(getSemiring()).append(")\n");
     int numStates = states.length;
     for (ImmutableState s : states) {
       sb.append("  ").append(s).append("\n");

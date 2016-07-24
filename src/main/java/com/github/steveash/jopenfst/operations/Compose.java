@@ -23,11 +23,11 @@ import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.ImmutableFst;
+import com.github.steveash.jopenfst.IndexPair;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
-
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,23 +63,23 @@ public class Compose {
    * @param semiring the semiring to use in the operation
    * @return the composed Fst
    */
-  public static Fst compose(Fst fst1, Fst fst2, Semiring semiring,
+  private static Fst compose(Fst fst1, Fst fst2, Semiring semiring,
                             boolean sorted) {
 //    fst1.throwIfThisOutputIsNotThatInput(fst2);
 
-    Fst res = new Fst(semiring, new SymbolTable(fst1.getInputSymbols()), new SymbolTable(fst2.getOutputSymbols()));
+    MutableFst res = new MutableFst(semiring, new SymbolTable(fst1.getInputSymbols()), new SymbolTable(fst2.getOutputSymbols()));
 
-    HashMap<Pair<Integer, Integer>, Integer> stateMap = Maps.newHashMap();
-    ArrayList<Pair<Integer, Integer>> queue = Lists.newArrayList();
+    HashMap<IndexPair, Integer> stateMap = Maps.newHashMap();
+    ArrayList<IndexPair> queue = Lists.newArrayList();
 
-    State s1 = fst1.getStart();
-    State s2 = fst2.getStart();
+    State s1 = fst1.getStartState();
+    State s2 = fst2.getStartState();
 
     if ((s1 == null) || (s2 == null)) {
       throw new IllegalArgumentException("No initial state in one of " + fst1 + " or " + fst2);
     }
 
-    Pair<Integer, Integer> p = Pair.of(s1.getId(), s2.getId());
+    IndexPair p = new IndexPair(s1.getId(), s2.getId());
     State s = new State(semiring.times(s1.getFinalWeight(),
                                        s2.getFinalWeight()));
 
@@ -105,7 +105,7 @@ public class Compose {
           if (a1.getOlabel() == a2.getIlabel()) {
             State nextState1 = a1.getNextState();
             State nextState2 = a2.getNextState();
-            Pair<Integer, Integer> nextPair = Pair.of(nextState1.getId(), nextState2.getId());
+            IndexPair nextPair = new IndexPair(nextState1.getId(), nextState2.getId());
             Integer nextState = stateMap.get(nextPair);
             State realNextState;
             if (nextState == null) {
@@ -139,16 +139,14 @@ public class Compose {
    * @param semiring the semiring to use in the operation
    * @return the composed Fst
    */
-  public static Fst get(Fst fst1, Fst fst2, Semiring semiring) {
-    if ((fst1 == null) || (fst2 == null)) {
-      return null;
-    }
-
+  public static Fst compose(MutableFst fst1, MutableFst fst2, Semiring semiring) {
+    fst1.throwIfInvalid();
+    fst2.throwIfInvalid();
     fst1.throwIfThisOutputIsNotThatInput(fst2);
 
-    Fst filter = getFilter(fst1.getOutputSymbols(), semiring);
-    augment(1, fst1, semiring);
-    augment(0, fst2, semiring);
+    Fst filter = makeFilter(fst1.getOutputSymbols(), semiring);
+    augment(OUTPUT, fst1, semiring);
+    augment(INPUT, fst2, semiring);
 
     Fst tmp = Compose.compose(fst1, filter, semiring, false);
     Fst res = Compose.compose(tmp, fst2, semiring, false);
@@ -167,9 +165,9 @@ public class Compose {
    * @param semiring the semiring to use in the operation
    * @return the filter
    */
-  public static Fst getFilter(SymbolTable table, Semiring semiring) {
+  private static Fst makeFilter(SymbolTable table, Semiring semiring) {
     table = new SymbolTable(table);
-    Fst filter = new Fst(semiring, table, table);
+    MutableFst filter = new MutableFst(semiring, table, table);
 
     int e1index = table.addNewUnique("eps1");
     int e2index = table.addNewUnique("eps2");
@@ -223,29 +221,16 @@ public class Compose {
    * Augments the labels of an Fst in order to use it for composition avoiding multiple epsilon paths in the resulting
    * Fst
    *
-   * Augment can be applied to both {@link com.github.steveash.jopenfst.Fst} and {@link
+   * Augment can be applied to both {@link MutableFst} and {@link
    * com.github.steveash.jopenfst.ImmutableFst}, as immutable fsts hold an additional null arc for that operation
    *
-   * @param whichLabels constant denoting if the augment should take place on input or output labels For value equal to
+   * @param label constant denoting if the augment should take place on input or output labels For value equal to
    *                    0 augment will take place for input labels For value equal to 1 augment will take place for
    *                    output labels
    * @param fst         the fst to augment
+   * @param semiring
    */
-  public static void augment(AugmentLabels whichLabels, Fst fst) {
-    augment(whichLabels, fst, fst.getSemiring());
-  }
-
-  public static void augment(int label, Fst fst, Semiring semiring) {
-    if (label == 0) {
-      augment(INPUT, fst, semiring);
-    } else if (label == 1) {
-      augment(OUTPUT, fst, semiring);
-    } else {
-      throw new IllegalArgumentException("Only takes input 0 or output 1 labels");
-    }
-  }
-
-  public static void augment(AugmentLabels label, Fst fst, Semiring semiring) {
+  public static void augment(AugmentLabels label, MutableFst fst, Semiring semiring) {
     // label: 0->augment on ilabel
     // 1->augment on olabel
 
@@ -255,7 +240,7 @@ public class Compose {
     int e1outputIndex = fst.getOutputSymbolCount();
     int e2outputIndex = e1outputIndex + 1;
 
-    int numStates = fst.getNumStates();
+    int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State s = fst.getState(i);
       // Immutable fsts hold an additional (null) arc for augmention

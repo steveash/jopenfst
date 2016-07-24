@@ -29,6 +29,7 @@ import java.util.Comparator;
  *
  * @author John Salatas <jsalatas@users.sourceforge.net>
  */
+@Deprecated // dont use this until i refactor all of this
 public class ImmutableState extends State {
 
   // Outgoing arcs
@@ -38,8 +39,6 @@ public class ImmutableState extends State {
    * Default protected constructor.
    *
    * An ImmutableState cannot be created directly. It needs to be deserialized as part of an ImmutableFst.
-   *
-   * @see FstInputOutput#loadImmutableModel(String)
    */
   protected ImmutableState() {
   }

@@ -17,29 +17,30 @@
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
-import com.github.steveash.jopenfst.FstInputOutput;
 import com.github.steveash.jopenfst.semiring.ProbabilitySemiring;
 
+import org.junit.Assert;
 import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
 
 /**
  * @author John Salatas <jsalatas@users.sourceforge.net>
  */
-public class RmEpsilonTest {
+public class RemoveEpsilonTest {
 
   @Test
   public void testRmEpsilon() {
     System.out.println("Testing RmEpsilon...");
 
-    Fst fst = Convert.importFst("data/tests/algorithms/rmepsilon/A",
-                                new ProbabilitySemiring());
-    Fst fstRmEps = Convert.importFst("data/tests/algorithms/rmepsilon/expected",
-                                    new ProbabilitySemiring());
-    Fst rmEpsilon = RmEpsilon.get(fst);
+    MutableFst fst = Convert.importFst("data/tests/algorithms/rmepsilon/A",
+                                       new ProbabilitySemiring());
+    MutableFst fstRmEps = Convert.importFst("data/tests/algorithms/rmepsilon/expected",
+                                            new ProbabilitySemiring());
+    Fst rmEpsilon = RemoveEpsilon.remove(fst);
 
-    assertTrue(fstRmEps.equals(rmEpsilon));
+    if (!fstRmEps.equals(rmEpsilon)) {
+      Assert.fail("Should be " + fstRmEps.toString() + " but was " + rmEpsilon.toString());
+    }
   }
 }

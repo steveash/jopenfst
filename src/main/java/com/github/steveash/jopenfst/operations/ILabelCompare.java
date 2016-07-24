@@ -16,6 +16,8 @@
 
 package com.github.steveash.jopenfst.operations;
 
+import com.google.common.collect.ComparisonChain;
+
 import com.github.steveash.jopenfst.Arc;
 
 import java.util.Comparator;
@@ -23,15 +25,11 @@ import java.util.Comparator;
 /**
  * Comparator used in {@link ArcSort} for sorting based on input labels
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
  */
 public class ILabelCompare implements Comparator<Arc> {
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
-   */
+  public static final ILabelCompare INSTANCE = new ILabelCompare();
+
   @Override
   public int compare(Arc o1, Arc o2) {
     if (o1 == null) {
@@ -41,8 +39,11 @@ public class ILabelCompare implements Comparator<Arc> {
       return -1;
     }
 
-    return (o1.getIlabel() < o2.getIlabel()) ? -1 : ((o1.getIlabel() == o2
-        .getIlabel()) ? 0 : 1);
+    return ComparisonChain.start()
+        .compare(o1.getIlabel(), o2.getIlabel())
+        .compare(o1.getOlabel(), o2.getOlabel())
+        .compare(o1.getWeight(), o2.getWeight())
+        .compare(o1.getNextState().getId(), o2.getNextState().getId())
+        .result();
   }
-
 }

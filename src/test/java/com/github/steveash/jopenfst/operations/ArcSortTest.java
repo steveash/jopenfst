@@ -17,7 +17,7 @@
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Arc;
-import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
@@ -32,8 +32,8 @@ public class ArcSortTest {
    *
    * @return the created fst
    */
-  private Fst createOsorted() {
-    Fst fst = new Fst(new TropicalSemiring());
+  private MutableFst createOsorted() {
+    MutableFst fst = new MutableFst(new TropicalSemiring());
 
     State s1 = new State(0.f);
     State s2 = new State(0.f);
@@ -64,8 +64,8 @@ public class ArcSortTest {
    *
    * @return the created fst
    */
-  private Fst createIsorted() {
-    Fst fst = new Fst(new TropicalSemiring());
+  private MutableFst createIsorted() {
+    MutableFst fst = new MutableFst(new TropicalSemiring());
 
     State s1 = new State(0.f);
     State s2 = new State(0.f);
@@ -96,8 +96,8 @@ public class ArcSortTest {
    *
    * @return the created fst
    */
-  private Fst createUnsorted() {
-    Fst fst = new Fst(new TropicalSemiring());
+  private MutableFst createUnsorted() {
+    MutableFst fst = new MutableFst(new TropicalSemiring());
 
     State s1 = new State(0.f);
     State s2 = new State(0.f);
@@ -126,17 +126,17 @@ public class ArcSortTest {
   @Test
   public void testArcSort() {
     // Input label sort test
-    Fst fst1 = createUnsorted();
-    Fst fst2 = createIsorted();
+    MutableFst fst1 = createUnsorted();
+    MutableFst fst2 = createIsorted();
     assertTrue(!fst1.equals(fst2));
-    ArcSort.apply(fst1, new ILabelCompare());
+    ArcSort.sortBy(fst1, new ILabelCompare());
     assertTrue(fst1.equals(fst2));
 
     // Output label sort test
     fst1 = createUnsorted();
     fst2 = createOsorted();
     assertTrue(!fst1.equals(fst2));
-    ArcSort.apply(fst1, new OLabelCompare());
+    ArcSort.sortBy(fst1, new OLabelCompare());
     assertTrue(fst1.equals(fst2));
 
   }

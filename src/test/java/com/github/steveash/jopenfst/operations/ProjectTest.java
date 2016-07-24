@@ -17,7 +17,7 @@
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Arc;
-import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
@@ -35,9 +35,9 @@ public class ProjectTest {
    *
    * @return the created fst
    */
-  private Fst createFst() {
+  private MutableFst createFst() {
     TropicalSemiring ts = new TropicalSemiring();
-    Fst fst = new Fst(ts);
+    MutableFst fst = new MutableFst(ts);
 
     State s1 = new State(ts.zero());
     State s2 = new State(ts.zero());
@@ -70,9 +70,9 @@ public class ProjectTest {
    *
    * @return the created fst
    */
-  private Fst createPi() {
+  private MutableFst createPi() {
     TropicalSemiring ts = new TropicalSemiring();
-    Fst fst = new Fst(ts);
+    MutableFst fst = new MutableFst(ts);
     State s1 = new State(ts.zero());
     State s2 = new State(ts.zero());
     State s3 = new State(ts.zero());
@@ -104,9 +104,9 @@ public class ProjectTest {
    *
    * @return the created fst
    */
-  private Fst createPo() {
+  private MutableFst createPo() {
     TropicalSemiring ts = new TropicalSemiring();
-    Fst fst = new Fst(ts);
+    MutableFst fst = new MutableFst(ts);
 
     State s1 = new State(ts.zero());
     State s2 = new State(ts.zero());
@@ -137,8 +137,8 @@ public class ProjectTest {
   @Test
   public void testProject() {
     // Project on Input label
-    Fst fst = createFst();
-    Fst p = createPi();
+    MutableFst fst = createFst();
+    MutableFst p = createPi();
     Project.apply(fst, ProjectType.INPUT);
     assertTrue(fst.equals(p));
 

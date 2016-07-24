@@ -16,16 +16,18 @@
 
 package com.github.steveash.jopenfst.operations;
 
+import com.google.common.collect.ComparisonChain;
+
 import com.github.steveash.jopenfst.Arc;
 
 import java.util.Comparator;
 
 /**
  * Comparator used in {@link ArcSort} for sorting based on output labels
- *
- * @author John Salatas <jsalatas@users.sourceforge.net>
  */
 public class OLabelCompare implements Comparator<Arc> {
+
+  public static final OLabelCompare INSTANCE = new OLabelCompare();
 
   /*
    * (non-Javadoc)
@@ -40,8 +42,12 @@ public class OLabelCompare implements Comparator<Arc> {
     if (o2 == null) {
       return -1;
     }
-    return (o1.getOlabel() < o2.getOlabel()) ? -1 : ((o1.getOlabel() == o2
-        .getOlabel()) ? 0 : 1);
+    return ComparisonChain.start()
+            .compare(o1.getOlabel(), o2.getOlabel())
+            .compare(o1.getIlabel(), o2.getIlabel())
+            .compare(o1.getWeight(), o2.getWeight())
+            .compare(o1.getNextState().getId(), o2.getNextState().getId())
+            .result();
   }
 
 }

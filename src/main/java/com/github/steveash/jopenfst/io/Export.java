@@ -16,8 +16,8 @@
 
 package com.github.steveash.jopenfst.io;
 
-import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.FstInputOutput;
+import com.github.steveash.jopenfst.MutableFst;
 
 /**
  * Provides a command line utility to convert a java binary fst model to openfst's text format
@@ -48,7 +48,7 @@ public class Export {
       System.exit(1);
     }
 
-    Fst fst = FstInputOutput.loadModel(args[0]);
+    MutableFst fst = FstInputOutput.loadModel(args[0]);
 
     // Serialize the java fst model to disk
     System.out.println("Saving as openfst text model...");

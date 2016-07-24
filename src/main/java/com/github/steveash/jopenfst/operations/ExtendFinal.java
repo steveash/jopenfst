@@ -18,6 +18,7 @@ package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
@@ -37,20 +38,23 @@ public class ExtendFinal {
   }
 
   /**
-   * Extends an Fst to a single final state.
+   * Creates a new FST that is a copy of the existing with a new signle final state
    *
    * It adds a new final state with a 0.0 (Semiring's 1) final wight and connects the current final states to it using
    * epsilon transitions with weight equal to the original final state's weight.
    *
-   * @param fst the Fst to extend
+   * @param fst the input fst -- it will not be modified
+   * @return a mutable fst that is a copy of the input + extended with a single final
    */
-  public static void apply(Fst fst) {
-    Semiring semiring = fst.getSemiring();
+  public static MutableFst apply(Fst fst) {
+    fst.throwIfInvalid();
+    MutableFst copy = MutableFst.copyFrom(fst);
+    Semiring semiring = copy.getSemiring();
     ArrayList<State> fStates = new ArrayList<>();
 
-    int numStates = fst.getNumStates();
+    int numStates = copy.getStateCount();
     for (int i = 0; i < numStates; i++) {
-      State s = fst.getState(i);
+      State s = copy.getState(i);
       if (s.getFinalWeight() != semiring.zero()) {
         fStates.add(s);
       }
@@ -58,43 +62,14 @@ public class ExtendFinal {
 
     // Add a new single final
     State newFinal = new State(semiring.one());
-    fst.addState(newFinal);
+    copy.addState(newFinal);
     for (State s : fStates) {
       // add epsilon transition from the old final to the new one
-      s.addArc(new Arc(0, 0, s.getFinalWeight(), newFinal));
+      s.addArc(new Arc(Fst.EPS_INDEX, Fst.EPS_INDEX, s.getFinalWeight(), newFinal));
       // set old state's weight to zero
       s.setFinalWeight(semiring.zero());
     }
-  }
-
-  /**
-   * Undo of the extend operation
-   */
-  public static void undo(Fst fst) {
-    State f = null;
-    int numStates = fst.getNumStates();
-    for (int i = 0; i < numStates; i++) {
-      State s = fst.getState(i);
-      if (s.getFinalWeight() != fst.getSemiring().zero()) {
-        f = s;
-        break;
-      }
-    }
-
-    if (f == null) {
-      throw new IllegalStateException("Final state not found in " + fst);
-    }
-    for (int i = 0; i < numStates; i++) {
-      State s = fst.getState(i);
-      for (int j = 0; j < s.getNumArcs(); j++) {
-        Arc a = s.getArc(j);
-        if (a.getIlabel() == 0 && a.getOlabel() == 0
-            && a.getNextState().getId() == f.getId()) {
-          s.setFinalWeight(a.getWeight());
-        }
-      }
-    }
-    fst.deleteState(f);
+    return copy;
   }
 
 }

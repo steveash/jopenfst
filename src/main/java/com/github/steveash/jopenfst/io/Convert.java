@@ -26,6 +26,7 @@ import com.google.common.io.Resources;
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
@@ -79,21 +80,21 @@ public class Convert {
       PrintWriter out = new PrintWriter(file);
 
       // print start first
-      State start = fst.getStart();
+      State start = fst.getStartState();
       out.println(start.getId() + "\t" + start.getFinalWeight());
 
       // print all states
-      int numStates = fst.getNumStates();
+      int numStates = fst.getStateCount();
       for (int i = 0; i < numStates; i++) {
         State s = fst.getState(i);
-        if (s.getId() != fst.getStart().getId()) {
+        if (s.getId() != fst.getStartState().getId()) {
           out.println(s.getId() + "\t" + s.getFinalWeight());
         }
       }
 
       SymbolTable.InvertedSymbolTable inputIds = fst.getInputSymbols().invert();
       SymbolTable.InvertedSymbolTable outputIds = fst.getOutputSymbols().invert();
-      numStates = fst.getNumStates();
+      numStates = fst.getStateCount();
       for (int i = 0; i < numStates; i++) {
         State s = fst.getState(i);
         int numArcs = s.getNumArcs();
@@ -178,7 +179,7 @@ public class Convert {
    * @param basename the files' base name
    * @param semiring the fst's semiring
    */
-  public static Fst importFst(String basename, Semiring semiring) {
+  public static MutableFst importFst(String basename, Semiring semiring) {
 
     Optional<SymbolTable> maybeInputs = importSymbols(basename + ".input.syms");
 
@@ -187,7 +188,7 @@ public class Convert {
       isyms = maybeInputs.get();
     } else {
       isyms = new SymbolTable();
-      isyms.put(Fst.EPS, 0);
+      isyms.put(MutableFst.EPS, 0);
     }
 
     Optional<SymbolTable> maybeOutputs = importSymbols(basename + ".output.syms");
@@ -196,11 +197,11 @@ public class Convert {
       osyms = maybeOutputs.get();
     } else {
       osyms = new SymbolTable();
-      osyms.put(Fst.EPS, 0);
+      osyms.put(MutableFst.EPS, 0);
     }
 
     SymbolTable ssyms = importSymbols(basename + ".states.syms").orNull();
-    Fst fst = new Fst(semiring, isyms, osyms);
+    MutableFst fst = new MutableFst(semiring, isyms, osyms);
 
     CharSource cs = asCharSource(Resources.getResource(basename + ".fst.txt"), Charsets.UTF_8);
     try (BufferedReader br = cs.openBufferedStream()) {

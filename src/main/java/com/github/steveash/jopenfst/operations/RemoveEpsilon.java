@@ -16,9 +16,13 @@
 
 package com.github.steveash.jopenfst.operations;
 
+import com.google.common.base.Preconditions;
+
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.State;
+import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
 import java.util.HashMap;
@@ -28,32 +32,32 @@ import java.util.HashMap;
  *
  * @author John Salatas <jsalatas@users.sourceforge.net>
  */
-public class RmEpsilon {
+public class RemoveEpsilon {
 
   /**
    * Default Constructor
    */
-  private RmEpsilon() {
+  private RemoveEpsilon() {
   }
 
   /**
    * Put a new state in the epsilon closure
    */
   private static void put(State fromState, State toState, float weight,
-                          HashMap<State, Float>[] cl) {
-    HashMap<State, Float> tmp = cl[fromState.getId()];
+                          HashMap<Integer, Float>[] cl) {
+    HashMap<Integer, Float> tmp = cl[fromState.getId()];
     if (tmp == null) {
       tmp = new HashMap<>();
       cl[fromState.getId()] = tmp;
     }
-    tmp.put(toState, weight);
+    tmp.put(toState.getId(), weight);
   }
 
   /**
    * Add a state in the epsilon closure
    */
   private static void add(State fromState, State toState, float weight,
-                          HashMap<State, Float>[] cl, Semiring semiring) {
+                          HashMap<Integer, Float>[] cl, Semiring semiring) {
     Float old = getPathWeight(fromState, toState, cl);
     if (old == null) {
       put(fromState, toState, weight, cl);
@@ -67,7 +71,7 @@ public class RmEpsilon {
    * Calculate the epsilon closure
    */
   private static void calcClosure(Fst fst, State state,
-                                  HashMap<State, Float>[] cl, Semiring semiring) {
+                                  HashMap<Integer, Float>[] cl, Semiring semiring) {
     State s = state;
 
     float pathWeight;
@@ -79,11 +83,11 @@ public class RmEpsilon {
           calcClosure(fst, a.getNextState(), cl, semiring);
         }
         if (cl[a.getNextState().getId()] != null) {
-          for (State pathFinalState : cl[a.getNextState().getId()]
-              .keySet()) {
+          for (Integer pathFinalStateIndex : cl[a.getNextState().getId()].keySet()) {
+            State pathFinalState = fst.getState(pathFinalStateIndex);
             pathWeight = semiring.times(
-                getPathWeight(a.getNextState(), pathFinalState,
-                              cl), a.getWeight());
+                getPathWeight(a.getNextState(), pathFinalState, cl),
+                a.getWeight());
             add(state, pathFinalState, pathWeight, cl, semiring);
           }
         }
@@ -96,9 +100,9 @@ public class RmEpsilon {
    * Get an epsilon path's cost in epsilon closure
    */
   private static Float getPathWeight(State in, State out,
-                                     HashMap<State, Float>[] cl) {
+                                     HashMap<Integer, Float>[] cl) {
     if (cl[in.getId()] != null) {
-      return cl[in.getId()].get(out);
+      return cl[in.getId()].get(out.getId());
     }
 
     return null;
@@ -112,32 +116,19 @@ public class RmEpsilon {
    * @param fst the fst to remove epsilon transitions from
    * @return the epsilon-free fst
    */
-  public static Fst get(Fst fst) {
-    if (fst == null) {
-      return null;
-    }
-
-    if (fst.getSemiring() == null) {
-      return null;
-    }
+  public static MutableFst remove(Fst fst) {
+    Preconditions.checkNotNull(fst);
+    Preconditions.checkNotNull(fst.getSemiring());
 
     Semiring semiring = fst.getSemiring();
-
-    Fst res = new Fst(semiring);
+    MutableFst res = new MutableFst(semiring, new SymbolTable(fst.getInputSymbols()), new SymbolTable(fst.getOutputSymbols()));
 
     @SuppressWarnings("unchecked")
-    HashMap<State, Float>[] cl = new HashMap[fst.getNumStates()];
-    for (int i = 0; i < cl.length; i++) {
-      cl[i] = null;
-    }
-    State[] oldToNewStateMap = new State[fst.getNumStates()];
-    State[] newToOldStateMap = new State[fst.getNumStates()];
-    for (int i = 0; i < fst.getNumStates(); i++) {
-      oldToNewStateMap[i] = null;
-      newToOldStateMap[i] = null;
-    }
+    HashMap<Integer, Float>[] cl = new HashMap[fst.getStateCount()];
+    State[] oldToNewStateMap = new State[fst.getStateCount()];
+    State[] newToOldStateMap = new State[fst.getStateCount()];
 
-    int numStates = fst.getNumStates();
+    int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State s = fst.getState(i);
       // Add non-epsilon arcs
@@ -145,7 +136,7 @@ public class RmEpsilon {
       res.addState(newState);
       oldToNewStateMap[s.getId()] = newState;
       newToOldStateMap[newState.getId()] = s;
-      if (newState.getId() == fst.getStart().getId()) {
+      if (newState.getId() == fst.getStartState().getId()) {
         res.setStart(newState);
       }
     }
@@ -171,13 +162,14 @@ public class RmEpsilon {
     }
 
     // augment fst with arcs generated from epsilon moves.
-    numStates = res.getNumStates();
+    numStates = res.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State s = res.getState(i);
       State oldState = newToOldStateMap[s.getId()];
       if (cl[oldState.getId()] != null) {
-        for (State pathFinalState : cl[oldState.getId()].keySet()) {
-          State s1 = pathFinalState;
+        for (Integer pathFinalStateIndex : cl[oldState.getId()].keySet()) {
+
+          State s1 = fst.getState(pathFinalStateIndex);
           if (s1.getFinalWeight() != semiring.zero()) {
             s.setFinalWeight(semiring.plus(s.getFinalWeight(),
                                            semiring.times(getPathWeight(oldState, s1, cl),
@@ -198,10 +190,8 @@ public class RmEpsilon {
       }
     }
 
-    res.setInputSymbolsFrom(fst);
-    res.setOutputSymbolsFrom(fst);
-
     Connect.apply(res);
+    ArcSort.sortByInput(res);
 
     return res;
   }

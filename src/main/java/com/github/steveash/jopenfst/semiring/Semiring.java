@@ -62,6 +62,14 @@ public abstract class Semiring implements Serializable {
    */
   public abstract boolean isMember(float w);
 
+  public boolean isZero(float candidate) {
+    return candidate == zero();
+  }
+
+  public boolean isNotZero(float candidate) {
+    return candidate != zero();
+  }
+
   /*
    * (non-Javadoc)
    *

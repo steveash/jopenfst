@@ -16,9 +16,10 @@
 
 package com.github.steveash.jopenfst.io;
 
-import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -50,12 +51,12 @@ public class Import {
       System.exit(1);
     }
 
-    Fst fst = Convert.importFst(args[0], new TropicalSemiring());
+    MutableFst fst = Convert.importFst(args[0], new TropicalSemiring());
 
     // Serialize the java fst model to disk
     System.out.println("Saving as binary java fst model...");
     try {
-      fst.saveModel(args[1]);
+      fst.saveModel(new File(args[1]));
 
     } catch (IOException e) {
       System.err.println("Cannot write to file " + args[1]);

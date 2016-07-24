@@ -20,8 +20,8 @@
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
-import com.github.steveash.jopenfst.FstInputOutput;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
 import org.junit.Test;
@@ -37,12 +37,12 @@ public class ReverseTest {
   public void testReverse() {
     // Input label sort test
 
-    Fst fst = Convert.importFst("data/tests/algorithms/reverse/A",
-                                new TropicalSemiring());
-    Fst fstB = Convert.importFst("data/tests/algorithms/reverse/expected",
-                                    new TropicalSemiring());
+    MutableFst fst = Convert.importFst("data/tests/algorithms/reverse/A",
+                                       new TropicalSemiring());
+    MutableFst fstB = Convert.importFst("data/tests/algorithms/reverse/expected",
+                                        new TropicalSemiring());
 
-    Fst fstReversed = Reverse.get(fst);
+    Fst fstReversed = Reverse.reverse(fst);
 
     assertTrue(fstB.equals(fstReversed));
   }

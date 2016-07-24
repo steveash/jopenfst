@@ -20,6 +20,7 @@
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
@@ -35,12 +36,13 @@ public class NShortestPathsTest {
   @Test
   public void testNShortestPaths() {
 
-    Fst fst = Convert.importFst("data/tests/algorithms/shortestpath/A",
-                                new TropicalSemiring());
-    Fst nsp = Convert.importFst("data/tests/algorithms/shortestpath/nsp",
-                                new TropicalSemiring());
+    MutableFst fst = Convert.importFst("data/tests/algorithms/shortestpath/A",
+                                       new TropicalSemiring());
+    MutableFst nsp = Convert.importFst("data/tests/algorithms/shortestpath/nsp",
+                                       new TropicalSemiring());
 
-    Fst fstNsp = NShortestPaths.get(fst, 6, true);
+    MutableFst detFst = Determinize.apply(fst);
+    Fst fstNsp = NShortestPaths.apply(detFst, 6);
 
     assertTrue(nsp.equals(fstNsp));
   }

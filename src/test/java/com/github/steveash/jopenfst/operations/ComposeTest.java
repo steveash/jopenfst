@@ -17,13 +17,12 @@
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
-import com.github.steveash.jopenfst.FstInputOutput;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
 import org.junit.Test;
 
-import static com.github.steveash.jopenfst.FstInputOutput.loadModel;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -38,15 +37,15 @@ public class ComposeTest {
 
   @Test
   public void testCompose() {
-    Fst fstA = Convert.importFst("data/tests/algorithms/compose/A",
-                                 new TropicalSemiring());
-    Fst fstB = Convert.importFst("data/tests/algorithms/compose/B",
-                                 new TropicalSemiring());
-    Fst composed = Convert.importFst("data/tests/algorithms/compose/expected",
-                                     new TropicalSemiring());
+    MutableFst fstA = Convert.importFst("data/tests/algorithms/compose/A",
+                                        new TropicalSemiring());
+    MutableFst fstB = Convert.importFst("data/tests/algorithms/compose/B",
+                                        new TropicalSemiring());
+    MutableFst composed = Convert.importFst("data/tests/algorithms/compose/expected",
+                                            new TropicalSemiring());
 //        .loadModel("data/tests/algorithms/compose/fstcompose.fst.ser");
 
-    Fst fstComposed = Compose.get(fstA, fstB, new TropicalSemiring());
+    Fst fstComposed = Compose.compose(fstA, fstB, new TropicalSemiring());
 
     assertTrue(composed.equals(fstComposed));
   }

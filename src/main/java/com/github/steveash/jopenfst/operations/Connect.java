@@ -16,10 +16,12 @@
 
 package com.github.steveash.jopenfst.operations;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
@@ -96,7 +98,7 @@ public class Connect {
             || !currentExploredArcs.contains(arc)) {
           lastPathIndex = paths.size() - 1;
           if (arcCount++ > 0) {
-            duplicatePath(lastPathIndex, fst.getStart(), start,
+            duplicatePath(lastPathIndex, fst.getStartState(), start,
                           paths);
             lastPathIndex = paths.size() - 1;
             paths.get(lastPathIndex).add(start);
@@ -135,7 +137,7 @@ public class Connect {
                                        ArrayList<ArrayList<State>> paths,
                                        ArrayList<Arc>[] exploredArcs,
                                        ArrayList<State> coaccessible) {
-    State currentState = fst.getStart();
+    State currentState = fst.getStartState();
     State nextState = currentState;
     do {
       if (!accessible.contains(currentState)) {
@@ -143,7 +145,7 @@ public class Connect {
                         accessible);
       }
     } while (currentState.getId() != nextState.getId());
-    int numStates = fst.getNumStates();
+    int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State s = fst.getState(i);
       if (s.getFinalWeight() != fst.getSemiring().zero()) {
@@ -157,17 +159,15 @@ public class Connect {
    *
    * @param fst the fst to trim
    */
-  public static void apply(Fst fst) {
+  public static void apply(MutableFst fst) {
     Semiring semiring = fst.getSemiring();
-    if (semiring == null) {
-      throw new IllegalArgumentException("FST " + fst + " has no semiring");
-    }
+    Preconditions.checkNotNull(semiring);
 
     ArrayList<State> accessible = new ArrayList<>();
     ArrayList<State> coaccessible = new ArrayList<>();
     @SuppressWarnings("unchecked")
-    ArrayList<Arc>[] exploredArcs = new ArrayList[fst.getNumStates()];
-    for (int i = 0; i < fst.getNumStates(); i++) {
+    ArrayList<Arc>[] exploredArcs = new ArrayList[fst.getStateCount()];
+    for (int i = 0; i < fst.getStateCount(); i++) {
       exploredArcs[i] = null;
     }
     ArrayList<ArrayList<State>> paths = new ArrayList<>();
@@ -177,7 +177,7 @@ public class Connect {
 
     ArrayList<State> toDelete = new ArrayList<>();
 
-    int numStates = fst.getNumStates();
+    int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State s = fst.getState(i);
       if (!(accessible.contains(s) || coaccessible.contains(s))) {
@@ -185,10 +185,6 @@ public class Connect {
       }
     }
 
-    for (State sid : toDelete) {
-      fst.deleteState(sid);
-    }
-
-    fst.remapStateIds();
+    fst.deleteStates(toDelete);
   }
 }

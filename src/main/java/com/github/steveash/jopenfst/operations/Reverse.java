@@ -18,6 +18,7 @@ package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
@@ -37,36 +38,33 @@ public class Reverse {
   /**
    * Reverses an fst
    *
-   * @param fst the fst to reverse
+   * @param infst the fst to reverse
    * @return the reversed fst
    */
-  public static Fst get(Fst fst) {
-    if (fst.getSemiring() == null) {
-      return null;
-    }
+  public static MutableFst reverse(Fst infst) {
+    infst.throwIfInvalid();
 
-    ExtendFinal.apply(fst);
+    MutableFst fst = ExtendFinal.apply(infst);
 
     Semiring semiring = fst.getSemiring();
 
-    Fst res = new Fst(fst.getNumStates(), semiring);
-
+    MutableFst res = new MutableFst(fst.getStateCount(), semiring);
     res.setInputSymbolsFromThatOutput(fst);
     res.setOutputSymbolsFromThatInput(fst);
 
-    State[] stateMap = new State[fst.getNumStates()];
-    int numStates = fst.getNumStates();
+    State[] stateMap = new State[fst.getStateCount()];
+    int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State is = fst.getState(i);
       State s = new State(semiring.zero());
       res.addState(s);
       stateMap[is.getId()] = s;
-      if (is.getFinalWeight() != semiring.zero()) {
+      if (semiring.isNotZero(is.getFinalWeight())) {
         res.setStart(s);
       }
     }
 
-    stateMap[fst.getStart().getId()].setFinalWeight(semiring.one());
+    stateMap[fst.getStartState().getId()].setFinalWeight(semiring.one());
 
     for (int i = 0; i < numStates; i++) {
       State olds = fst.getState(i);
@@ -81,7 +79,6 @@ public class Reverse {
       }
     }
 
-    ExtendFinal.undo(fst);
     return res;
   }
 }

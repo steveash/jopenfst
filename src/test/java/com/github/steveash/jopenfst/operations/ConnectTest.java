@@ -16,14 +16,11 @@
 
 package com.github.steveash.jopenfst.operations;
 
-import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
-import com.github.steveash.jopenfst.FstInputOutput;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
 import org.junit.Test;
-
-import java.io.File;
 
 import static org.junit.Assert.assertTrue;
 
@@ -34,10 +31,10 @@ public class ConnectTest {
 
   @Test
   public void testConnect() {
-    Fst fst = Convert.importFst("data/tests/algorithms/connect/A",
-                                new TropicalSemiring());
-    Fst connectSaved = Convert.importFst("data/tests/algorithms/connect/expected",
-                                    new TropicalSemiring());
+    MutableFst fst = Convert.importFst("data/tests/algorithms/connect/A",
+                                       new TropicalSemiring());
+    MutableFst connectSaved = Convert.importFst("data/tests/algorithms/connect/expected",
+                                                new TropicalSemiring());
     Connect.apply(fst);
 
     assertTrue(connectSaved.equals(fst));

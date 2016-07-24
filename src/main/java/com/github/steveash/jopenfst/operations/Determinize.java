@@ -19,15 +19,19 @@
  */
 package com.github.steveash.jopenfst.operations;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.IndexWeight;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
-import org.apache.commons.lang3.tuple.MutablePair;
-
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Determize operation.
@@ -45,30 +49,28 @@ public class Determinize {
 
   }
 
-  private static MutablePair<State, Float> getPair(
-      ArrayList<MutablePair<State, Float>> queue, State state, Float zero) {
-    MutablePair<State, Float> res = null;
-    for (MutablePair<State, Float> tmp : queue) {
-      if (state.getId() == tmp.getLeft().getId()) {
-        res = tmp;
-        break;
+  private static void incrementOrAppend(
+      ArrayList<IndexWeight> queue, State state, Semiring semiring, float toAdd) {
+    for (int i = 0; i < queue.size(); i++) {
+      IndexWeight maybe = queue.get(i);
+      if (state.getId() == maybe.getIndex()) {
+        // already there so lets replace this with an incremented version
+        float newVal = semiring.plus(maybe.getWeight(), toAdd);
+        IndexWeight updated = new IndexWeight(maybe.getIndex(), newVal);
+        queue.set(i, updated);
+        return;
       }
     }
-
-    if (res == null) {
-      res = MutablePair.of(state, zero);
-      queue.add(res);
-    }
-
-    return res;
+    // add it with this weight
+    queue.add(new IndexWeight(state.getId(), semiring.plus(semiring.zero(), toAdd)));
   }
 
   private static ArrayList<Integer> getUniqueLabels(Fst fst,
-                                                    ArrayList<MutablePair<State, Float>> pa) {
+                                                    ArrayList<IndexWeight> pa) {
     ArrayList<Integer> res = new ArrayList<>();
 
-    for (MutablePair<State, Float> p : pa) {
-      State s = p.getLeft();
+    for (IndexWeight p : pa) {
+      State s = fst.getState(p.getIndex());
 
       int numArcs = s.getNumArcs();
       for (int j = 0; j < numArcs; j++) {
@@ -81,17 +83,16 @@ public class Determinize {
     return res;
   }
 
-  private static State getStateLabel(ArrayList<MutablePair<State, Float>> pa,
-                                     HashMap<String, State> stateMapper) {
+  private static String getStateLabel(List<IndexWeight> pa) {
     StringBuilder sb = new StringBuilder();
 
-    for (MutablePair<State, Float> p : pa) {
+    for (IndexWeight p : pa) {
       if (sb.length() > 0) {
         sb.append(",");
       }
-      sb.append("(").append(p.getLeft()).append(",").append(p.getRight()).append(")");
+      sb.append("(").append(p.getIndex()).append(",").append(p.getWeight()).append(")");
     }
-    return stateMapper.get(sb.toString());
+    return sb.toString();
   }
 
   /**
@@ -101,42 +102,43 @@ public class Determinize {
    * @param fst the fst to determinize
    * @return the determinized fst
    */
-  public static Fst get(Fst fst) {
-
-    if (fst.getSemiring() == null) {
-      throw new IllegalArgumentException("FST " + fst + " has no semiring");
-    }
+  public static MutableFst apply(Fst fst) {
+    fst.throwIfInvalid();
 
     // initialize the queue and new fst
     Semiring semiring = fst.getSemiring();
-    Fst res = new Fst(semiring);
+    MutableFst res = new MutableFst(semiring);
     res.setInputSymbolsFrom(fst);
     res.setOutputSymbolsFrom(fst);
 
     // stores the queue (item in index 0 is next)
-    ArrayList<ArrayList<MutablePair<State, Float>>> queue = new ArrayList<>();
+    // indexes here always refer to the input fst
+    ArrayList<ArrayList<IndexWeight>> queue = new ArrayList<>();
 
     HashMap<String, State> stateMapper = new HashMap<>();
 
     State s = new State(semiring.zero());
-    String stateString = "(" + fst.getStart() + "," + semiring.one() + ")";
-    queue.add(new ArrayList<MutablePair<State, Float>>());
-    queue.get(0).add(MutablePair.of(fst.getStart(), semiring.one()));
+    queue.add(new ArrayList<IndexWeight>());
+    IndexWeight initialIw = new IndexWeight(fst.getStartState().getId(), semiring.one());
+    String initialLabel = getStateLabel(ImmutableList.of(initialIw));
+    queue.get(0).add(initialIw);
     res.addState(s);
-    stateMapper.put(stateString, s);
+    stateMapper.put(initialLabel, s);
     res.setStart(s);
 
-    while (queue.size() > 0) {
-      ArrayList<MutablePair<State, Float>> p = queue.get(0);
-      State pnew = getStateLabel(p, stateMapper);
+    while (!queue.isEmpty()) {
+      ArrayList<IndexWeight> p = queue.get(0);
+      String thisLabel = getStateLabel(p);
+      State pnew = stateMapper.get(thisLabel);
+      Preconditions.checkNotNull(pnew, "something is wrong with labels ", thisLabel);
       queue.remove(0);
       ArrayList<Integer> labels = getUniqueLabels(fst, p);
       for (int label : labels) {
         Float wnew = semiring.zero();
         // calc w'
-        for (MutablePair<State, Float> ps : p) {
-          State old = ps.getLeft();
-          Float u = ps.getRight();
+        for (IndexWeight ps : p) {
+          State old = fst.getState(ps.getIndex());
+          Float u = ps.getWeight();
           int numArcs = old.getNumArcs();
           for (int j = 0; j < numArcs; j++) {
             Arc arc = old.getArc(j);
@@ -149,46 +151,33 @@ public class Determinize {
 
         // calc new states
         // keep residual weights to variable forQueue
-        ArrayList<MutablePair<State, Float>> forQueue = new ArrayList<>();
-        for (MutablePair<State, Float> ps : p) {
-          State old = ps.getLeft();
-          Float u = ps.getRight();
+        ArrayList<IndexWeight> forQueue = new ArrayList<>();
+        for (IndexWeight ps : p) {
+          State old = fst.getState(ps.getIndex());
+          Float u = ps.getWeight();
           Float wnewRevert = semiring.divide(semiring.one(), wnew);
           int numArcs = old.getNumArcs();
           for (int j = 0; j < numArcs; j++) {
             Arc arc = old.getArc(j);
             if (label == arc.getIlabel()) {
               State oldstate = arc.getNextState();
-              MutablePair<State, Float> pair = getPair(forQueue,
-                                                oldstate, semiring.zero());
-              pair.setRight(semiring.plus(
-                  pair.getRight(),
-                  semiring.times(wnewRevert,
-                                 semiring.times(u, arc.getWeight()))));
+              float toAdd = semiring.times(wnewRevert, semiring.times(u, arc.getWeight()));
+              incrementOrAppend(forQueue, oldstate, semiring, toAdd);
             }
           }
         }
 
         // build new state's id and new elements for queue
-        String qnewid = "";
-        for (MutablePair<State, Float> ps : forQueue) {
-          State old = ps.getLeft();
-          Float unew = ps.getRight();
-          if (!qnewid.equals("")) {
-            qnewid = qnewid + ",";
-          }
-          qnewid = qnewid + "(" + old + "," + unew + ")";
-        }
-
+        String qnewid = getStateLabel(forQueue);
         if (stateMapper.get(qnewid) == null) {
           State qnew = new State(semiring.zero());
           res.addState(qnew);
           stateMapper.put(qnewid, qnew);
           // update new state's weight
           Float fw = qnew.getFinalWeight();
-          for (MutablePair<State, Float> ps : forQueue) {
-            fw = semiring.plus(fw, semiring.times(ps.getLeft()
-                                                      .getFinalWeight(), ps.getRight()));
+          for (IndexWeight ps : forQueue) {
+            float stateWeight = fst.getState(ps.getIndex()).getFinalWeight();
+            fw = semiring.plus(fw, semiring.times(stateWeight, ps.getWeight()));
           }
           qnew.setFinalWeight(fw);
 

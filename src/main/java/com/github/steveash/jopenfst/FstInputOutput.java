@@ -17,7 +17,6 @@
 package com.github.steveash.jopenfst;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.google.common.io.ByteSink;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
@@ -81,42 +80,35 @@ public class FstInputOutput {
    *
    * @param in the ObjectInputStream. It should be already be initialized by the caller.
    */
-  private static Fst readFst(ObjectInputStream in) throws IOException,
-                                                          ClassNotFoundException {
+  private static MutableFst readFst(ObjectInputStream in) throws IOException,
+                                                                 ClassNotFoundException {
     SymbolTable is = readStringMap(in);
     SymbolTable os = readStringMap(in);
     return readFstWithTables(in, is, os);
   }
 
-  private static Fst readFstOld(ObjectInputStream in) throws IOException,
-                                                          ClassNotFoundException {
-    SymbolTable is = readStringMapOld(in);
-    SymbolTable os = readStringMapOld(in);
-    return readFstWithTables(in, is, os);
-  }
-
-  private static Fst readFstWithTables(ObjectInputStream in, SymbolTable is, SymbolTable os)
+  private static MutableFst readFstWithTables(ObjectInputStream in, SymbolTable is, SymbolTable os)
       throws IOException, ClassNotFoundException {
     int startid = in.readInt();
     Semiring semiring = (Semiring) in.readObject();
     int numStates = in.readInt();
-    Fst res = new Fst(new ArrayList<State>(numStates), semiring, is, os);
+    MutableFst res = new MutableFst(new ArrayList<State>(numStates), semiring, is, os);
     for (int i = 0; i < numStates; i++) {
       int numArcs = in.readInt();
       State s = new State(numArcs);
       float f = in.readFloat();
-      if (f == res.semiring.zero()) {
-        f = res.semiring.zero();
-      } else if (f == res.semiring.one()) {
-        f = res.semiring.one();
+      if (f == res.getSemiring().zero()) {
+        f = semiring.zero();
+      } else if (f == semiring.one()) {
+        f = semiring.one();
       }
       s.setFinalWeight(f);
-      s.id = in.readInt();
-      res.states.add(s);
+      int thisStateId = in.readInt();
+      res.setState(thisStateId, s);
     }
-    res.setStart(res.states.get(startid));
+    res.setStart(res.getState(startid));
 
-    numStates = res.getNumStates();
+    numStates = res.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State s1 = res.getState(i);
       for (int j = 0; j < s1.initialNumArcs; j++) {
@@ -124,7 +116,7 @@ public class FstInputOutput {
         a.setIlabel(in.readInt());
         a.setOlabel(in.readInt());
         a.setWeight(in.readFloat());
-        a.setNextState(res.states.get(in.readInt()));
+        a.setNextState(res.getState(in.readInt()));
         s1.addArc(a);
       }
     }
@@ -137,31 +129,18 @@ public class FstInputOutput {
    *
    * @param file the binary model filename
    */
-  public static Fst loadModel(File file) {
+  public static MutableFst loadModel(File file) {
     return loadModelFromSource(Files.asByteSource(file));
   }
 
-  public static Fst loadModel(String resourceName) {
+  public static MutableFst loadModel(String resourceName) {
     ByteSource bs = asByteSource(getResource(resourceName));
     return loadModelFromSource(bs);
   }
 
-  public static Fst loadModelOld(String resourceName) {
-    ByteSource bs = asByteSource(getResource(resourceName));
-    return loadModelOldFromSource(bs);
-  }
-
-  private static Fst loadModelFromSource(ByteSource bs) {
+  private static MutableFst loadModelFromSource(ByteSource bs) {
     try (ObjectInputStream ois = new ConvertingObjectInputStream(bs.openBufferedStream())) {
       return readFst(ois);
-    } catch (Exception e) {
-      throw Throwables.propagate(e);
-    }
-  }
-
-  private static Fst loadModelOldFromSource(ByteSource bs) {
-    try (ObjectInputStream ois = new ConvertingObjectInputStream(bs.openBufferedStream())) {
-      return readFstOld(ois);
     } catch (Exception e) {
       throw Throwables.propagate(e);
     }
@@ -187,27 +166,26 @@ public class FstInputOutput {
    *
    * @param out the ObjectOutputStream. It should be already be initialized by the caller.
    */
-  private static void writeFst(Fst fst, ObjectOutputStream out) throws IOException {
+  private static void writeFst(MutableFst fst, ObjectOutputStream out) throws IOException {
     writeStringMap(out, fst.getInputSymbols());
     writeStringMap(out, fst.getOutputSymbols());
-    out.writeInt(fst.states.indexOf(fst.start));
+    out.writeInt(fst.getStartState().getId());
 
-    out.writeObject(fst.semiring);
-    out.writeInt(fst.states.size());
+    out.writeObject(fst.getSemiring());
+    out.writeInt(fst.getStateCount());
 
-    HashMap<State, Integer> stateMap = new HashMap<>(
-        fst.states.size(), 1.f);
-    for (int i = 0; i < fst.states.size(); i++) {
-      State s = fst.states.get(i);
+    HashMap<State, Integer> stateMap = new HashMap<>(fst.getStateCount());
+    for (int i = 0; i < fst.getStateCount(); i++) {
+      State s = fst.getState(i);
       out.writeInt(s.getNumArcs());
       out.writeFloat(s.getFinalWeight());
       out.writeInt(s.getId());
       stateMap.put(s, i);
     }
 
-    int numStates = fst.states.size();
+    int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
-      State s = fst.states.get(i);
+      State s = fst.getState(i);
       int numArcs = s.getNumArcs();
       for (int j = 0; j < numArcs; j++) {
         Arc a = s.getArc(j);
@@ -219,71 +197,14 @@ public class FstInputOutput {
     }
   }
 
-  public static void saveModel(Fst fst, File file) throws IOException {
+  public static void saveModel(MutableFst fst, File file) throws IOException {
     ByteSink bs = Files.asByteSink(file);
     try (ObjectOutputStream oos = new ObjectOutputStream(bs.openBufferedStream())) {
       writeFst(fst, oos);
     }
   }
 
-  /**
-   * Deserializes an ImmutableFst from an ObjectInputStream
-   *
-   * @param in the ObjectInputStream. It should be already be initialized by the caller.
-   */
-  private static ImmutableFst readImmutableFst(ObjectInputStream in)
-      throws IOException, ClassNotFoundException {
-    SymbolTable is = readStringMap(in);
-    SymbolTable os = readStringMap(in);
-    int startid = in.readInt();
-    Semiring semiring = (Semiring) in.readObject();
-    int numStates = in.readInt();
-    ImmutableFst res = new ImmutableFst(numStates, semiring, is, os);
-    for (int i = 0; i < numStates; i++) {
-      int numArcs = in.readInt();
-      ImmutableState s = new ImmutableState(numArcs);
-      float f = in.readFloat();
-      if (f == res.semiring.zero()) {
-        f = res.semiring.zero();
-      } else if (f == res.semiring.one()) {
-        f = res.semiring.one();
-      }
-      s.setFinalWeight(f);
-      s.id = in.readInt();
-      res.states[s.getId()] = s;
-    }
-    res.setStart(res.states[startid]);
-
-    numStates = res.states.length;
-    for (int i = 0; i < numStates; i++) {
-      ImmutableState s1 = res.states[i];
-      for (int j = 0; j < s1.initialNumArcs; j++) {
-        Arc a = new Arc();
-        a.setIlabel(in.readInt());
-        a.setOlabel(in.readInt());
-        a.setWeight(in.readFloat());
-        a.setNextState(res.states[in.readInt()]);
-        s1.setArc(j, a);
-      }
-    }
-
-    return res;
-  }
-
-  /**
-   * Deserializes an ImmutableFst from disk
-   *
-   * @param filename the binary model filename
-   */
-  public static ImmutableFst loadImmutableModel(String filename) {
-    ByteSource bs = asByteSource(getResource(filename));
-    try (ObjectInputStream ois = new ConvertingObjectInputStream(bs.openBufferedStream())) {
-      return readImmutableFst(ois);
-    } catch (Exception e) {
-      throw Throwables.propagate(e);
-    }
-  }
-
+  // shim while i was still using John's serialized "expected" values to test the algorithms
   private static class ConvertingObjectInputStream extends ObjectInputStream {
 
     private static final String EDU_CMU_SPHINX_FST = "edu.cmu.sphinx.fst";

@@ -17,6 +17,7 @@
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
@@ -33,15 +34,15 @@ public class ComposeEpsilonTest {
   public void testCompose() {
     // Input label sort test
 
-    Fst fstA = Convert.importFst("data/tests/algorithms/composeeps/A",
-                                 new TropicalSemiring());
-    Fst fstB = Convert.importFst("data/tests/algorithms/composeeps/B",
-                                 new TropicalSemiring());
-    Fst fstC = Convert.importFst(
+    MutableFst fstA = Convert.importFst("data/tests/algorithms/composeeps/A",
+                                        new TropicalSemiring());
+    MutableFst fstB = Convert.importFst("data/tests/algorithms/composeeps/B",
+                                        new TropicalSemiring());
+    MutableFst fstC = Convert.importFst(
         "data/tests/algorithms/composeeps/fstcomposeeps",
         new TropicalSemiring());
 
-    Fst fstComposed = Compose.get(fstA, fstB, new TropicalSemiring());
+    Fst fstComposed = Compose.compose(fstA, fstB, new TropicalSemiring());
 
     assertTrue(fstC.equals(fstComposed));
   }

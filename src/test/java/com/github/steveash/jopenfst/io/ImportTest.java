@@ -16,8 +16,8 @@
 
 package com.github.steveash.jopenfst.io;
 
-import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.FstInputOutput;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
 import org.junit.Test;
@@ -40,13 +40,13 @@ public class ImportTest {
   @Test
   public void testConvert() throws IOException {
 
-    Fst fst1 = Convert.importFst("data/openfst/basic", new TropicalSemiring());
+    MutableFst fst1 = Convert.importFst("data/openfst/basic", new TropicalSemiring());
 
     File tempFile = File.createTempFile("fst", "deleteme");
     tempFile.deleteOnExit();
     fst1.saveModel(tempFile);
 
-    Fst fst2 = FstInputOutput.loadModel(tempFile);
+    MutableFst fst2 = FstInputOutput.loadModel(tempFile);
 
     assertTrue(fst1.equals(fst2));
   }
