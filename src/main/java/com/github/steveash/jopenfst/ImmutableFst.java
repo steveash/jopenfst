@@ -19,120 +19,99 @@
  */
 package com.github.steveash.jopenfst;
 
+import com.google.common.collect.ImmutableList;
+
 import com.github.steveash.jopenfst.semiring.Semiring;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
 /**
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * Immutable version of an FST that is thread safe and immutable
  */
-@Deprecated //dont use this until I refactor everything
-public class ImmutableFst extends MutableFst {
+public class ImmutableFst implements Fst {
 
-  protected ImmutableState[] states = null;
-  protected int numStates;
+  private final ImmutableList<ImmutableState> states;
+  private final Semiring semiring;
+  private final ImmutableState start;
+  private final SymbolTable itable;
+  private final SymbolTable otable;
 
-  /**
-   * Default private constructor.
-   *
-   * An ImmutableFst cannot be created directly. It needs to be deserialized.
-   *
-   */
-  ImmutableFst() {
 
+  public ImmutableFst(MutableFst copyFrom) {
+    this.semiring = copyFrom.getSemiring();
+    this.itable = new SymbolTable(copyFrom.getInputSymbols());
+    this.otable = new SymbolTable(copyFrom.getOutputSymbols());
+
+    ImmutableList.Builder<ImmutableState> builder = ImmutableList.builder();
+    for (int i = 0; i < copyFrom.getStateCount(); i++) {
+      MutableState from = copyFrom.getState(i);
+      builder.add(new ImmutableState(from));
+    }
+    this.states = builder.build();
+    this.start = this.states.get(copyFrom.getStartState().getId());
+    // always do this last after all invariants are setup
+    for (ImmutableState state : this.states) {
+      state.init(this);
+    }
   }
 
-  /**
-   * Private Constructor specifying the capacity of the states array
-   *
-   * An ImmutableFst cannot be created directly. It needs to be deserialized.
-   *
-   * @param numStates the number of fst's states
-   */
-  ImmutableFst(int numStates, Semiring semiring, SymbolTable isym, SymbolTable osym) {
-    super(new ArrayList<State>(numStates), semiring, isym, osym);
-    this.numStates = numStates;
-    this.states = new ImmutableState[numStates];
+  @Override
+  public ImmutableState getStartState() {
+    return start;
+  }
+
+  @Override
+  public Semiring getSemiring() {
+    return semiring;
   }
 
   @Override
   public int getStateCount() {
-    return this.numStates;
+    return states.size();
   }
 
   @Override
   public ImmutableState getState(int index) {
-    return states[index];
+    return states.get(index);
   }
 
   @Override
-  public State addState(State state) {
-    throw throwMutate();
+  public SymbolTable getInputSymbols() {
+    return itable;
   }
 
   @Override
-  public State newState() {
-    throw throwMutate();
+  public SymbolTable getOutputSymbols() {
+    return otable;
   }
 
   @Override
-  public State newStartState() {
-    throw throwMutate();
-  }
-
-  //
-//  /**
-//   * Deserializes an ImmutableFst from an InputStream
-//   *
-//   * @param inputStream the InputStream. It should be already be initialized by the caller.
-//   */
-//  public static ImmutableFst loadImmutableModel(InputStream inputStream) {
-//    try (ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(inputStream))) {
-//      return readImmutableFst(ois);
-//    } catch (Exception e) {
-//      throw Throwables.propagate(e);
-//    }
-//  }
-
-
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("Fst(start=").append(getStartState()).append(", isyms=").append(getInputSymbols()).append(", osyms=").append(
-        getOutputSymbols()).append(", semiring=").append(getSemiring()).append(")\n");
-    int numStates = states.length;
-    for (ImmutableState s : states) {
-      sb.append("  ").append(s).append("\n");
-      int numArcs = s.getNumArcs();
-      for (int j = 0; j < numArcs; j++) {
-        Arc a = s.getArc(j);
-        sb.append("    ").append(a).append("\n");
-      }
-    }
-
-    return sb.toString();
+  public int getInputSymbolCount() {
+    return itable.size();
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    ImmutableFst other = (ImmutableFst) obj;
-    if (!Arrays.equals(states, other.states)) {
-      return false;
-    }
-    if (!super.equals(obj)) {
-      return false;
-    }
-    return true;
+  public int getOutputSymbolCount() {
+    return otable.size();
   }
 
-  private static IllegalArgumentException throwMutate() {
-    throw new IllegalArgumentException("You cannot modify an ImmutableFst.");
+  @Override
+  public int lookupInputSymbol(String symbol) {
+    return itable.get(symbol);
+  }
+
+  @Override
+  public int lookupOutputSymbol(String symbol) {
+    return otable.get(symbol);
+  }
+
+  @Override
+  public void throwIfThisOutputIsNotThatInput(Fst that) {
+    if (!this.otable.equals(that.getInputSymbols())) {
+      throw new IllegalArgumentException("Symbol tables don't match, cant compose " + this + " to " + that);
+    }
+  }
+
+  @Override
+  public void throwIfInvalid() {
+    // cant even construct an invalid immutable fst
   }
 }

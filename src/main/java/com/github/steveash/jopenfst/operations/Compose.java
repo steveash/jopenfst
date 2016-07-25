@@ -22,9 +22,10 @@ import com.google.common.collect.Maps;
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
-import com.github.steveash.jopenfst.ImmutableFst;
 import com.github.steveash.jopenfst.IndexPair;
+import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
+import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
@@ -63,11 +64,13 @@ public class Compose {
    * @param semiring the semiring to use in the operation
    * @return the composed Fst
    */
-  private static Fst compose(Fst fst1, Fst fst2, Semiring semiring,
-                            boolean sorted) {
+  private static MutableFst compose(Fst fst1, Fst fst2, Semiring semiring,
+                                    boolean sorted) {
 //    fst1.throwIfThisOutputIsNotThatInput(fst2);
 
-    MutableFst res = new MutableFst(semiring, new SymbolTable(fst1.getInputSymbols()), new SymbolTable(fst2.getOutputSymbols()));
+    MutableFst
+        res =
+        new MutableFst(semiring, new SymbolTable(fst1.getInputSymbols()), new SymbolTable(fst2.getOutputSymbols()));
 
     HashMap<IndexPair, Integer> stateMap = Maps.newHashMap();
     ArrayList<IndexPair> queue = Lists.newArrayList();
@@ -80,8 +83,8 @@ public class Compose {
     }
 
     IndexPair p = new IndexPair(s1.getId(), s2.getId());
-    State s = new State(semiring.times(s1.getFinalWeight(),
-                                       s2.getFinalWeight()));
+    MutableState s = new MutableState(semiring.times(s1.getFinalWeight(),
+                                                     s2.getFinalWeight()));
 
     res.addState(s);
     res.setStart(s);
@@ -107,9 +110,9 @@ public class Compose {
             State nextState2 = a2.getNextState();
             IndexPair nextPair = new IndexPair(nextState1.getId(), nextState2.getId());
             Integer nextState = stateMap.get(nextPair);
-            State realNextState;
+            MutableState realNextState;
             if (nextState == null) {
-              realNextState = new State(semiring.times(
+              realNextState = new MutableState(semiring.times(
                   nextState1.getFinalWeight(),
                   nextState2.getFinalWeight()));
               res.addState(realNextState);
@@ -118,9 +121,9 @@ public class Compose {
             } else {
               realNextState = res.getState(nextState);
             }
-            Arc a = new Arc(a1.getIlabel(), a2.getOlabel(),
-                            semiring.times(a1.getWeight(), a2.getWeight()),
-                            realNextState);
+            MutableArc a = new MutableArc(a1.getIlabel(), a2.getOlabel(),
+                                          semiring.times(a1.getWeight(), a2.getWeight()),
+                                          realNextState);
             s.addArc(a);
           }
         }
@@ -139,7 +142,7 @@ public class Compose {
    * @param semiring the semiring to use in the operation
    * @return the composed Fst
    */
-  public static Fst compose(MutableFst fst1, MutableFst fst2, Semiring semiring) {
+  public static MutableFst compose(MutableFst fst1, MutableFst fst2, Semiring semiring) {
     fst1.throwIfInvalid();
     fst2.throwIfInvalid();
     fst1.throwIfThisOutputIsNotThatInput(fst2);
@@ -148,8 +151,8 @@ public class Compose {
     augment(OUTPUT, fst1, semiring);
     augment(INPUT, fst2, semiring);
 
-    Fst tmp = Compose.compose(fst1, filter, semiring, false);
-    Fst res = Compose.compose(tmp, fst2, semiring, false);
+    MutableFst tmp = Compose.compose(fst1, filter, semiring, false);
+    MutableFst res = Compose.compose(tmp, fst2, semiring, false);
 
     // Connect.apply(res);
 
@@ -173,45 +176,45 @@ public class Compose {
     int e2index = table.addNewUnique("eps2");
 
     // State 0
-    State s0 = new State(table.size());
+    MutableState s0 = new MutableState(table.size());
     s0.setFinalWeight(semiring.one());
-    State s1 = new State(table.size());
+    MutableState s1 = new MutableState(table.size());
     s1.setFinalWeight(semiring.one());
-    State s2 = new State(table.size());
+    MutableState s2 = new MutableState(table.size());
     s2.setFinalWeight(semiring.one());
     filter.addState(s0);
-    s0.addArc(new Arc(e2index, e1index, semiring.one(), s0));
-    s0.addArc(new Arc(e1index, e1index, semiring.one(), s1));
-    s0.addArc(new Arc(e2index, e2index, semiring.one(), s2));
+    s0.addArc(new MutableArc(e2index, e1index, semiring.one(), s0));
+    s0.addArc(new MutableArc(e1index, e1index, semiring.one(), s1));
+    s0.addArc(new MutableArc(e2index, e2index, semiring.one(), s2));
     for (ObjectIntCursor<String> cursor : table) {
       int i = cursor.value;
       if (cursor.key.equalsIgnoreCase(Fst.EPS) || i == e1index || i == e2index) {
         continue;
       }
-      s0.addArc(new Arc(i, i, semiring.one(), s0));
+      s0.addArc(new MutableArc(i, i, semiring.one(), s0));
     }
     filter.setStart(s0);
 
     // State 1
     filter.addState(s1);
-    s1.addArc(new Arc(e1index, e1index, semiring.one(), s1));
+    s1.addArc(new MutableArc(e1index, e1index, semiring.one(), s1));
     for (ObjectIntCursor<String> cursor : table) {
       int i = cursor.value;
       if (cursor.key.equalsIgnoreCase(Fst.EPS) || i == e1index || i == e2index) {
         continue;
       }
-      s1.addArc(new Arc(i, i, semiring.one(), s0));
+      s1.addArc(new MutableArc(i, i, semiring.one(), s0));
     }
 
     // State 2
     filter.addState(s2);
-    s2.addArc(new Arc(e2index, e2index, semiring.one(), s2));
+    s2.addArc(new MutableArc(e2index, e2index, semiring.one(), s2));
     for (ObjectIntCursor<String> cursor : table) {
       int i = cursor.value;
       if (cursor.key.equalsIgnoreCase(Fst.EPS) || i == e1index || i == e2index) {
         continue;
       }
-      s2.addArc(new Arc(i, i, semiring.one(), s0));
+      s2.addArc(new MutableArc(i, i, semiring.one(), s0));
     }
 
     return filter;
@@ -221,14 +224,10 @@ public class Compose {
    * Augments the labels of an Fst in order to use it for composition avoiding multiple epsilon paths in the resulting
    * Fst
    *
-   * Augment can be applied to both {@link MutableFst} and {@link
-   * com.github.steveash.jopenfst.ImmutableFst}, as immutable fsts hold an additional null arc for that operation
-   *
-   * @param label constant denoting if the augment should take place on input or output labels For value equal to
-   *                    0 augment will take place for input labels For value equal to 1 augment will take place for
-   *                    output labels
-   * @param fst         the fst to augment
-   * @param semiring
+   * @param label constant denoting if the augment should take place on input or output labels For value equal to 0
+   *              augment will take place for input labels For value equal to 1 augment will take place for output
+   *              labels
+   * @param fst   the fst to augment
    */
   public static void augment(AugmentLabels label, MutableFst fst, Semiring semiring) {
     // label: 0->augment on ilabel
@@ -242,12 +241,10 @@ public class Compose {
 
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
-      State s = fst.getState(i);
-      // Immutable fsts hold an additional (null) arc for augmention
-      int numArcs = (fst instanceof ImmutableFst) ? s.getNumArcs() - 1
-                                                  : s.getNumArcs();
+      MutableState s = fst.getState(i);
+      int numArcs = s.getNumArcs();
       for (int j = 0; j < numArcs; j++) {
-        Arc a = s.getArc(j);
+        MutableArc a = s.getArc(j);
         if ((label == OUTPUT) && (a.getOlabel() == 0)) {
           a.setOlabel(e2outputIndex);
         } else if ((label == INPUT) && (a.getIlabel() == 0)) {
@@ -255,19 +252,9 @@ public class Compose {
         }
       }
       if (label == INPUT) {
-        if (fst instanceof ImmutableFst) {
-          s.setArc(numArcs, new Arc(e2inputIndex, 0, semiring.one(),
-                                    s));
-        } else {
-          s.addArc(new Arc(e2inputIndex, 0, semiring.one(), s));
-        }
+        s.addArc(new MutableArc(e2inputIndex, 0, semiring.one(), s));
       } else if (label == OUTPUT) {
-        if (fst instanceof ImmutableFst) {
-          s.setArc(numArcs, new Arc(0, e1outputIndex, semiring.one(),
-                                    s));
-        } else {
-          s.addArc(new Arc(0, e1outputIndex, semiring.one(), s));
-        }
+        s.addArc(new MutableArc(0, e1outputIndex, semiring.one(), s));
       }
     }
   }

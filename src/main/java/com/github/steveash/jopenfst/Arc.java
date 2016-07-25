@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Steve Ash
+ * Copyright 2016 Steve Ash
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,154 +17,15 @@
 package com.github.steveash.jopenfst;
 
 /**
- * The fst's arc implementation.
- *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author Steve Ash
  */
-public class Arc {
+public interface Arc {
 
-  // Arc's weight
-  private float weight;
+  float getWeight();
 
-  // input label
-  private int iLabel;
+  int getIlabel();
 
-  // output label
-  private int oLabel;
+  int getOlabel();
 
-  // next state's id
-  private State nextState;
-
-  /**
-   * Default Constructor
-   */
-  public Arc() {
-  }
-
-  /**
-   * Arc Constructor
-   *
-   * @param iLabel    the input label's id
-   * @param oLabel    the output label's id
-   * @param weight    the arc's weight
-   * @param nextState the arc's next state
-   */
-  public Arc(int iLabel, int oLabel, float weight, State nextState) {
-    this.weight = weight;
-    this.iLabel = iLabel;
-    this.oLabel = oLabel;
-    this.nextState = nextState;
-  }
-
-  /**
-   * Get the arc's weight
-   */
-  public float getWeight() {
-    return weight;
-  }
-
-  /**
-   * Set the arc's weight
-   */
-  public void setWeight(float weight) {
-    this.weight = weight;
-  }
-
-  /**
-   * Get the input label's id
-   */
-  public int getIlabel() {
-    return iLabel;
-  }
-
-  /**
-   * Set the input label's id
-   *
-   * @param iLabel the input label's id to set
-   */
-  public void setIlabel(int iLabel) {
-    this.iLabel = iLabel;
-  }
-
-  /**
-   * Get the output label's id
-   */
-  public int getOlabel() {
-    return oLabel;
-  }
-
-  /**
-   * Set the output label's id
-   *
-   * @param oLabel the output label's id to set
-   */
-  public void setOlabel(int oLabel) {
-    this.oLabel = oLabel;
-  }
-
-  /**
-   * Get the next state
-   */
-  public State getNextState() {
-    return nextState;
-  }
-
-  /**
-   * Set the next state
-   *
-   * @param nextState the next state to set
-   */
-  public void setNextState(State nextState) {
-    this.nextState = nextState;
-  }
-
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    Arc other = (Arc) obj;
-    if (iLabel != other.iLabel) {
-      return false;
-    }
-    if (nextState == null) {
-      if (other.nextState != null) {
-        return false;
-      }
-    } else if (nextState.getId() != other.nextState.getId()) {
-      return false;
-    }
-    if (oLabel != other.oLabel) {
-      return false;
-    }
-    if (!(weight == other.weight)) {
-      if (Float.floatToIntBits(weight) != Float
-          .floatToIntBits(other.weight)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.lang.Object#toString()
-   */
-  @Override
-  public String toString() {
-    return "(" + iLabel + ", " + oLabel + ", " + weight + ", " + nextState
-           + ")";
-  }
+  State getNextState();
 }

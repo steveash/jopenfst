@@ -23,6 +23,8 @@ package com.github.steveash.jopenfst.semiring;
  */
 public class ProbabilitySemiring extends Semiring {
 
+  public static final ProbabilitySemiring INSTANCE = new ProbabilitySemiring();
+
   private static final long serialVersionUID = 5592668313009971909L;
   // zero value
   private static float zero = 0.f;

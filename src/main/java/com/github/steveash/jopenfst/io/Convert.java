@@ -26,7 +26,9 @@ import com.google.common.io.Resources;
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
+import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
@@ -207,7 +209,7 @@ public class Convert {
     try (BufferedReader br = cs.openBufferedStream()) {
       boolean firstLine = true;
       String strLine;
-      HashMap<Integer, State> stateMap = new HashMap<>();
+      HashMap<Integer, MutableState> stateMap = new HashMap<>();
 
       while ((strLine = br.readLine()) != null) {
         String[] tokens = strLine.split("\\t");
@@ -217,9 +219,9 @@ public class Convert {
         } else {
           inputStateId = ssyms.get(tokens[0]);
         }
-        State inputState = stateMap.get(inputStateId);
+        MutableState inputState = stateMap.get(inputStateId);
         if (inputState == null) {
-          inputState = new State(semiring.zero());
+          inputState = new MutableState(semiring.zero());
           fst.setState(inputStateId, inputState);
           stateMap.put(inputStateId, inputState);
         }
@@ -237,9 +239,9 @@ public class Convert {
             nextStateId = ssyms.get(tokens[1]);
           }
 
-          State nextState = stateMap.get(nextStateId);
+          MutableState nextState = stateMap.get(nextStateId);
           if (nextState == null) {
-            nextState = new State(semiring.zero());
+            nextState = new MutableState(semiring.zero());
             fst.setState(nextStateId, nextState);
             stateMap.put(nextStateId, nextState);
           }
@@ -247,7 +249,7 @@ public class Convert {
           int iLabel = isyms.getOrAdd(tokens[2]);
           int oLabel = osyms.getOrAdd(tokens[3]);
           float arcWeight = Float.parseFloat(tokens[4]);
-          Arc arc = new Arc(iLabel, oLabel, arcWeight, nextState);
+          MutableArc arc = new MutableArc(iLabel, oLabel, arcWeight, nextState);
           inputState.addArc(arc);
         } else {
           // This is a final weight

@@ -16,10 +16,10 @@
 
 package com.github.steveash.jopenfst.operations;
 
-import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
-import com.github.steveash.jopenfst.State;
+import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
 import java.util.ArrayList;
@@ -50,22 +50,22 @@ public class ExtendFinal {
     fst.throwIfInvalid();
     MutableFst copy = MutableFst.copyFrom(fst);
     Semiring semiring = copy.getSemiring();
-    ArrayList<State> fStates = new ArrayList<>();
+    ArrayList<MutableState> fStates = new ArrayList<>();
 
     int numStates = copy.getStateCount();
     for (int i = 0; i < numStates; i++) {
-      State s = copy.getState(i);
+      MutableState s = copy.getState(i);
       if (s.getFinalWeight() != semiring.zero()) {
         fStates.add(s);
       }
     }
 
     // Add a new single final
-    State newFinal = new State(semiring.one());
+    MutableState newFinal = new MutableState(semiring.one());
     copy.addState(newFinal);
-    for (State s : fStates) {
+    for (MutableState s : fStates) {
       // add epsilon transition from the old final to the new one
-      s.addArc(new Arc(Fst.EPS_INDEX, Fst.EPS_INDEX, s.getFinalWeight(), newFinal));
+      s.addArc(new MutableArc(Fst.EPS_INDEX, Fst.EPS_INDEX, s.getFinalWeight(), newFinal));
       // set old state's weight to zero
       s.setFinalWeight(semiring.zero());
     }

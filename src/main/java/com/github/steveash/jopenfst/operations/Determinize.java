@@ -25,7 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.IndexWeight;
+import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
+import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
@@ -115,9 +117,9 @@ public class Determinize {
     // indexes here always refer to the input fst
     ArrayList<ArrayList<IndexWeight>> queue = new ArrayList<>();
 
-    HashMap<String, State> stateMapper = new HashMap<>();
+    HashMap<String, MutableState> stateMapper = new HashMap<>();
 
-    State s = new State(semiring.zero());
+    MutableState s = new MutableState(semiring.zero());
     queue.add(new ArrayList<IndexWeight>());
     IndexWeight initialIw = new IndexWeight(fst.getStartState().getId(), semiring.one());
     String initialLabel = getStateLabel(ImmutableList.of(initialIw));
@@ -129,7 +131,7 @@ public class Determinize {
     while (!queue.isEmpty()) {
       ArrayList<IndexWeight> p = queue.get(0);
       String thisLabel = getStateLabel(p);
-      State pnew = stateMapper.get(thisLabel);
+      MutableState pnew = stateMapper.get(thisLabel);
       Preconditions.checkNotNull(pnew, "something is wrong with labels ", thisLabel);
       queue.remove(0);
       ArrayList<Integer> labels = getUniqueLabels(fst, p);
@@ -170,7 +172,7 @@ public class Determinize {
         // build new state's id and new elements for queue
         String qnewid = getStateLabel(forQueue);
         if (stateMapper.get(qnewid) == null) {
-          State qnew = new State(semiring.zero());
+          MutableState qnew = new MutableState(semiring.zero());
           res.addState(qnew);
           stateMapper.put(qnewid, qnew);
           // update new state's weight
@@ -183,7 +185,7 @@ public class Determinize {
 
           queue.add(forQueue);
         }
-        pnew.addArc(new Arc(label, label, wnew, stateMapper.get(qnewid)));
+        pnew.addArc(new MutableArc(label, label, wnew, stateMapper.get(qnewid)));
       }
     }
 

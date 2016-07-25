@@ -39,29 +39,29 @@ public class MutableFst implements Fst {
     // build up states
     for (int i = 0; i < fst.getStateCount(); i++) {
       State source = fst.getState(i);
-      State target = new State(source.getNumArcs());
+      MutableState target = new MutableState(source.getNumArcs());
       target.setFinalWeight(source.getFinalWeight());
       copy.setState(i, target);
     }
     // build arcs now that we have target state refs
     for (int i = 0; i < fst.getStateCount(); i++) {
       State source = fst.getState(i);
-      State target = copy.getState(i);
+      MutableState target = copy.getState(i);
       for (int j = 0; j < source.getNumArcs(); j++) {
         Arc sarc = source.getArc(j);
-        State nextTargetState = copy.getState(sarc.getNextState().getId());
-        Arc tarc = new Arc(sarc.getIlabel(), sarc.getOlabel(), sarc.getWeight(), nextTargetState);
+        MutableState nextTargetState = copy.getState(sarc.getNextState().getId());
+        MutableArc tarc = new MutableArc(sarc.getIlabel(), sarc.getOlabel(), sarc.getWeight(), nextTargetState);
         target.addArc(tarc);
       }
     }
-    State newStart = copy.getState(fst.getStartState().getId());
+    MutableState newStart = copy.getState(fst.getStartState().getId());
     copy.setStart(newStart);
     return copy;
   }
 
   private final Semiring semiring;
-  private ArrayList<State> states;
-  private State start;
+  private ArrayList<MutableState> states;
+  private MutableState start;
   private SymbolTable inputSymbols;
   private SymbolTable outputSymbols;
 
@@ -80,11 +80,11 @@ public class MutableFst implements Fst {
    * @param numStates the initial capacity
    */
   public MutableFst(int numStates) {
-    this(new ArrayList<State>(numStates), makeDefaultRing(), new SymbolTable(), new SymbolTable());
+    this(new ArrayList<MutableState>(numStates), makeDefaultRing(), new SymbolTable(), new SymbolTable());
   }
 
   public MutableFst(int numStates, Semiring semiring) {
-    this(new ArrayList<State>(numStates), semiring, new SymbolTable(), new SymbolTable());
+    this(new ArrayList<MutableState>(numStates), semiring, new SymbolTable(), new SymbolTable());
   }
 
   /**
@@ -97,10 +97,10 @@ public class MutableFst implements Fst {
   }
 
   public MutableFst(Semiring semiring, SymbolTable inputSymbols, SymbolTable outputSymbols) {
-    this(Lists.<State>newArrayList(), semiring, inputSymbols, outputSymbols);
+    this(Lists.<MutableState>newArrayList(), semiring, inputSymbols, outputSymbols);
   }
 
-  protected MutableFst(ArrayList<State> states, Semiring semiring, SymbolTable inputSymbols,
+  protected MutableFst(ArrayList<MutableState> states, Semiring semiring, SymbolTable inputSymbols,
                        SymbolTable outputSymbols) {
     this.states = states;
     this.semiring = semiring;
@@ -112,7 +112,7 @@ public class MutableFst implements Fst {
    * Get the initial states
    */
   @Override
-  public State getStartState() {
+  public MutableState getStartState() {
     return start;
   }
 
@@ -129,14 +129,14 @@ public class MutableFst implements Fst {
    *
    * @param start the initial state
    */
-  public void setStart(State start) {
+  public void setStart(MutableState start) {
     Preconditions.checkArgument(start.getId() >= 0, "must set id before setting start");
     this.start = start;
   }
 
-  public State newStartState() {
+  public MutableState newStartState() {
     Preconditions.checkArgument(start == null, "cant add more than one start state");
-    State newStart = newState();
+    MutableState newStart = newState();
     setStart(newStart);
     return newStart;
   }
@@ -150,7 +150,7 @@ public class MutableFst implements Fst {
   }
 
   @Override
-  public State getState(int index) {
+  public MutableState getState(int index) {
     return states.get(index);
   }
 
@@ -159,14 +159,14 @@ public class MutableFst implements Fst {
    *
    * @param state the state to be added
    */
-  public State addState(State state) {
+  public MutableState addState(MutableState state) {
     Preconditions.checkArgument(state.getId() == - 1, "trying to add a state that already has id");
     this.states.add(state);
     state.id = states.size() - 1;
     return state;
   }
 
-  public void setState(int id, State state) {
+  public void setState(int id, MutableState state) {
     Preconditions.checkArgument(state.getId() == - 1, "trying to add a state that already has id");
     state.setId(id);
     // they provided the id so index properly
@@ -180,8 +180,8 @@ public class MutableFst implements Fst {
     this.states.set(id, state);
   }
 
-  public State newState() {
-    State s = new State();
+  public MutableState newState() {
+    MutableState s = new MutableState();
     return addState(s);
   }
 
@@ -269,7 +269,7 @@ public class MutableFst implements Fst {
    * Deletes the given states and remaps the existing state ids
    * @param statesToDelete
    */
-  public void deleteStates(Collection<State> statesToDelete) {
+  public void deleteStates(Collection<? extends State> statesToDelete) {
     for (State state : statesToDelete) {
       deleteState(state);
     }
@@ -291,7 +291,7 @@ public class MutableFst implements Fst {
     ArrayList<Integer> toDelete;
     int numStates = states.size();
     for (int i = 0; i < numStates; i++) {
-      State s1 = states.get(i);
+      MutableState s1 = states.get(i);
 
       toDelete = new ArrayList<>();
       int numArcs = s1.getNumArcs();

@@ -19,142 +19,100 @@
  */
 package com.github.steveash.jopenfst;
 
-import java.util.Arrays;
-import java.util.Comparator;
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
- * The fst's immutable state implementation.
- *
- * holds its outgoing {@link Arc} objects in a fixed size array not allowing additions/deletions.
- *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * Immutable version of the state
  */
-@Deprecated // dont use this until i refactor all of this
-public class ImmutableState extends State {
+public class ImmutableState implements State {
 
-  // Outgoing arcs
-  private Arc[] arcs = null;
+  private final int id;
+  private final float finalWeight;
+  private final ImmutableList<ImmutableArc> arcs;
 
-  /**
-   * Default protected constructor.
-   *
-   * An ImmutableState cannot be created directly. It needs to be deserialized as part of an ImmutableFst.
-   */
-  protected ImmutableState() {
+  public ImmutableState(State copyFrom) {
+    this(copyFrom.getId(), copyFrom.getFinalWeight(), copyFrom.getArcs());
   }
 
-  /**
-   * Constructor specifying the capacity of the arcs array.
-   */
-  protected ImmutableState(int numArcs) {
-    super(0);
-    this.initialNumArcs = numArcs;
-    arcs = new Arc[numArcs];
+  public ImmutableState(int id, float finalWeight, List<? extends Arc> copyFrom) {
+    this.id = id;
+    this.finalWeight = finalWeight;
+    ImmutableList.Builder<ImmutableArc> builder = ImmutableList.builder();
+    for (Arc arc : copyFrom) {
+      builder.add(new ImmutableArc(arc.getIlabel(), arc.getOlabel(), arc.getWeight(), arc.getNextState().getId()));
+    }
+    this.arcs = builder.build();
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.State#arcSort(java.util.Comparator)
-   */
-  public void arcSort(Comparator<Arc> cmp) {
-    Arrays.sort(arcs, cmp);
-  }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.State#addArc(edu.cmu.sphinx.fst.Arc)
-   */
   @Override
-  public void addArc(Arc arc) {
-    throw new IllegalArgumentException(
-        "You cannot modify an ImmutableState.");
+  public float getFinalWeight() {
+    return finalWeight;
   }
 
-  /**
-   * Set an arc at the specified position in the arcs' array.
-   *
-   * @param index the position to the arcs' array
-   * @param arc   the arc value to set
-   */
-  public void setArc(int index, Arc arc) {
-    arcs[index] = arc;
-  }
-
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.State#deleteArc(int)
-   */
   @Override
-  public Arc deleteArc(int index) {
-    throw new IllegalArgumentException(
-        "You cannot modify an ImmutableState.");
+  public int getId() {
+    return id;
   }
 
-  /**
-   * Set the state's arcs array
-   *
-   * @param arcs the arcs array to set
-   */
-  public void setArcs(Arc[] arcs) {
-    this.arcs = arcs;
-  }
-
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.State#getNumArcs()
-   */
   @Override
   public int getNumArcs() {
-    return initialNumArcs;
+    return arcs.size();
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see edu.cmu.sphinx.fst.State#getArc(int)
-   */
   @Override
-  public Arc getArc(int index) {
-    return this.arcs[index];
+  public ImmutableArc getArc(int index) {
+    return arcs.get(index);
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.lang.Object#hashCode()
-   */
+  @Override
+  public List<? extends Arc> getArcs() {
+    return arcs;
+  }
+
+  void init(ImmutableFst from) {
+    for (ImmutableArc arc : arcs) {
+      arc.init(from);
+    }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    ImmutableState that = (ImmutableState) o;
+
+    if (id != that.id) {
+      return false;
+    }
+    if (Float.compare(that.finalWeight, finalWeight) != 0) {
+      return false;
+    }
+    return arcs != null ? arcs.equals(that.arcs) : that.arcs == null;
+
+  }
+
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + id;
+    int result = id;
+    result = 31 * result + (finalWeight != +0.0f ? Float.floatToIntBits(finalWeight) : 0);
+    result = 31 * result + (arcs != null ? arcs.hashCode() : 0);
     return result;
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    ImmutableState other = (ImmutableState) obj;
-    if (!Arrays.equals(arcs, other.arcs)) {
-      return false;
-    }
-    if (!super.equals(obj)) {
-      return false;
-    }
-    return true;
+  public String toString() {
+    return "ImmutableState{" +
+           "id=" + id +
+           ", finalWeight=" + finalWeight +
+           ", arcs=" + arcs +
+           '}';
   }
 }

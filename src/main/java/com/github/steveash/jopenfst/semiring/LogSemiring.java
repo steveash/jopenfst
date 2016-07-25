@@ -23,6 +23,8 @@ package com.github.steveash.jopenfst.semiring;
  */
 public class LogSemiring extends Semiring {
 
+  public static final LogSemiring INSTANCE = new LogSemiring();
+
   private static final long serialVersionUID = 5212106775584311083L;
 
   // zero value

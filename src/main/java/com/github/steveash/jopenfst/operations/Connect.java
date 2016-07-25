@@ -20,8 +20,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import com.github.steveash.jopenfst.Arc;
-import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
+import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
@@ -37,12 +38,12 @@ public class Connect {
   /**
    * Calculates the coaccessible states of an fst
    */
-  private static void calcCoAccessible(Fst fst, State state,
-                                       ArrayList<ArrayList<State>> paths,
-                                       ArrayList<State> coaccessible) {
+  private static void calcCoAccessible(MutableFst fst, MutableState state,
+                                       ArrayList<ArrayList<MutableState>> paths,
+                                       ArrayList<MutableState> coaccessible) {
     // hold the coaccessible added in this loop
-    ArrayList<State> newCoAccessibles = new ArrayList<>();
-    for (ArrayList<State> path : paths) {
+    ArrayList<MutableState> newCoAccessibles = new ArrayList<>();
+    for (ArrayList<MutableState> path : paths) {
       int index = path.lastIndexOf(state);
       if (index != -1) {
         if (state.getFinalWeight() != fst.getSemiring().zero()
@@ -58,7 +59,7 @@ public class Connect {
     }
 
     // run again for the new coaccessibles
-    for (State s : newCoAccessibles) {
+    for (MutableState s : newCoAccessibles) {
       calcCoAccessible(fst, s, paths, coaccessible);
     }
   }
@@ -66,25 +67,25 @@ public class Connect {
   /**
    * Copies a path
    */
-  private static void duplicatePath(int lastPathIndex, State fromState,
-                                    State toState, ArrayList<ArrayList<State>> paths) {
-    ArrayList<State> lastPath = paths.get(lastPathIndex);
+  private static void duplicatePath(int lastPathIndex, MutableState fromState,
+                                    MutableState toState, ArrayList<ArrayList<MutableState>> paths) {
+    ArrayList<MutableState> lastPath = paths.get(lastPathIndex);
     // copy the last path to a new one, from start to current state
     int fromIndex = lastPath.indexOf(fromState);
     int toIndex = lastPath.indexOf(toState);
     if (toIndex == -1) {
       toIndex = lastPath.size() - 1;
     }
-    ArrayList<State> newPath = Lists.newArrayList(lastPath.subList(fromIndex, toIndex));
+    ArrayList<MutableState> newPath = Lists.newArrayList(lastPath.subList(fromIndex, toIndex));
     paths.add(newPath);
   }
 
   /**
    * The depth first search recursion
    */
-  private static State dfs(Fst fst, State start,
-                           ArrayList<ArrayList<State>> paths, ArrayList<Arc>[] exploredArcs,
-                           ArrayList<State> accessible) {
+  private static MutableState dfs(MutableFst fst, MutableState start,
+                           ArrayList<ArrayList<MutableState>> paths, ArrayList<Arc>[] exploredArcs,
+                           ArrayList<MutableState> accessible) {
     int lastPathIndex = paths.size() - 1;
 
     ArrayList<Arc> currentExploredArcs = exploredArcs[start.getId()];
@@ -93,7 +94,7 @@ public class Connect {
       int arcCount = 0;
       int numArcs = start.getNumArcs();
       for (int j = 0; j < numArcs; j++) {
-        Arc arc = start.getArc(j);
+        MutableArc arc = start.getArc(j);
         if ((currentExploredArcs == null)
             || !currentExploredArcs.contains(arc)) {
           lastPathIndex = paths.size() - 1;
@@ -103,7 +104,7 @@ public class Connect {
             lastPathIndex = paths.size() - 1;
             paths.get(lastPathIndex).add(start);
           }
-          State next = arc.getNextState();
+          MutableState next = arc.getNextState();
           addExploredArc(start.getId(), arc, exploredArcs);
           // detect self loops
           if (next.getId() != start.getId()) {
@@ -133,12 +134,12 @@ public class Connect {
   /**
    * Initialization of a depth first search recursion
    */
-  private static void depthFirstSearch(Fst fst, ArrayList<State> accessible,
-                                       ArrayList<ArrayList<State>> paths,
+  private static void depthFirstSearch(MutableFst fst, ArrayList<MutableState> accessible,
+                                       ArrayList<ArrayList<MutableState>> paths,
                                        ArrayList<Arc>[] exploredArcs,
-                                       ArrayList<State> coaccessible) {
-    State currentState = fst.getStartState();
-    State nextState = currentState;
+                                       ArrayList<MutableState> coaccessible) {
+    MutableState currentState = fst.getStartState();
+    MutableState nextState = currentState;
     do {
       if (!accessible.contains(currentState)) {
         nextState = dfs(fst, currentState, paths, exploredArcs,
@@ -147,7 +148,7 @@ public class Connect {
     } while (currentState.getId() != nextState.getId());
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
-      State s = fst.getState(i);
+      MutableState s = fst.getState(i);
       if (s.getFinalWeight() != fst.getSemiring().zero()) {
         calcCoAccessible(fst, s, paths, coaccessible);
       }
@@ -163,15 +164,15 @@ public class Connect {
     Semiring semiring = fst.getSemiring();
     Preconditions.checkNotNull(semiring);
 
-    ArrayList<State> accessible = new ArrayList<>();
-    ArrayList<State> coaccessible = new ArrayList<>();
+    ArrayList<MutableState> accessible = new ArrayList<>();
+    ArrayList<MutableState> coaccessible = new ArrayList<>();
     @SuppressWarnings("unchecked")
     ArrayList<Arc>[] exploredArcs = new ArrayList[fst.getStateCount()];
     for (int i = 0; i < fst.getStateCount(); i++) {
       exploredArcs[i] = null;
     }
-    ArrayList<ArrayList<State>> paths = new ArrayList<>();
-    paths.add(new ArrayList<State>());
+    ArrayList<ArrayList<MutableState>> paths = new ArrayList<>();
+    paths.add(new ArrayList<MutableState>());
 
     depthFirstSearch(fst, accessible, paths, exploredArcs, coaccessible);
 

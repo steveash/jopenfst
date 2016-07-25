@@ -18,7 +18,9 @@ package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
+import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
@@ -52,11 +54,11 @@ public class Reverse {
     res.setInputSymbolsFromThatOutput(fst);
     res.setOutputSymbolsFromThatInput(fst);
 
-    State[] stateMap = new State[fst.getStateCount()];
+    MutableState[] stateMap = new MutableState[fst.getStateCount()];
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State is = fst.getState(i);
-      State s = new State(semiring.zero());
+      MutableState s = new MutableState(semiring.zero());
       res.addState(s);
       stateMap[is.getId()] = s;
       if (semiring.isNotZero(is.getFinalWeight())) {
@@ -68,13 +70,13 @@ public class Reverse {
 
     for (int i = 0; i < numStates; i++) {
       State olds = fst.getState(i);
-      State news = stateMap[olds.getId()];
+      MutableState news = stateMap[olds.getId()];
       int numArcs = olds.getNumArcs();
       for (int j = 0; j < numArcs; j++) {
         Arc olda = olds.getArc(j);
-        State next = stateMap[olda.getNextState().getId()];
-        Arc newa = new Arc(olda.getIlabel(), olda.getOlabel(),
-                           semiring.reverse(olda.getWeight()), news);
+        MutableState next = stateMap[olda.getNextState().getId()];
+        MutableArc newa = new MutableArc(olda.getIlabel(), olda.getOlabel(),
+                                  semiring.reverse(olda.getWeight()), news);
         next.addArc(newa);
       }
     }

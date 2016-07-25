@@ -20,7 +20,9 @@ import com.google.common.base.Preconditions;
 
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
+import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
@@ -125,14 +127,14 @@ public class RemoveEpsilon {
 
     @SuppressWarnings("unchecked")
     HashMap<Integer, Float>[] cl = new HashMap[fst.getStateCount()];
-    State[] oldToNewStateMap = new State[fst.getStateCount()];
+    MutableState[] oldToNewStateMap = new MutableState[fst.getStateCount()];
     State[] newToOldStateMap = new State[fst.getStateCount()];
 
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State s = fst.getState(i);
       // Add non-epsilon arcs
-      State newState = new State(s.getFinalWeight());
+      MutableState newState = new MutableState(s.getFinalWeight());
       res.addState(newState);
       oldToNewStateMap[s.getId()] = newState;
       newToOldStateMap[newState.getId()] = s;
@@ -144,12 +146,12 @@ public class RemoveEpsilon {
     for (int i = 0; i < numStates; i++) {
       State s = fst.getState(i);
       // Add non-epsilon arcs
-      State newState = oldToNewStateMap[s.getId()];
+      MutableState newState = oldToNewStateMap[s.getId()];
       int numArcs = s.getNumArcs();
       for (int j = 0; j < numArcs; j++) {
         Arc a = s.getArc(j);
         if ((a.getIlabel() != 0) || (a.getOlabel() != 0)) {
-          newState.addArc(new Arc(a.getIlabel(), a.getOlabel(), a
+          newState.addArc(new MutableArc(a.getIlabel(), a.getOlabel(), a
               .getWeight(), oldToNewStateMap[a.getNextState()
               .getId()]));
         }
@@ -164,7 +166,7 @@ public class RemoveEpsilon {
     // augment fst with arcs generated from epsilon moves.
     numStates = res.getStateCount();
     for (int i = 0; i < numStates; i++) {
-      State s = res.getState(i);
+      MutableState s = res.getState(i);
       State oldState = newToOldStateMap[s.getId()];
       if (cl[oldState.getId()] != null) {
         for (Integer pathFinalStateIndex : cl[oldState.getId()].keySet()) {
@@ -179,10 +181,10 @@ public class RemoveEpsilon {
           for (int j = 0; j < numArcs; j++) {
             Arc a = s1.getArc(j);
             if ((a.getIlabel() != 0) || (a.getOlabel() != 0)) {
-              Arc newArc = new Arc(a.getIlabel(), a.getOlabel(),
-                                   semiring.times(a.getWeight(),
+              MutableArc newArc = new MutableArc(a.getIlabel(), a.getOlabel(),
+                                          semiring.times(a.getWeight(),
                                                   getPathWeight(oldState, s1, cl)),
-                                   oldToNewStateMap[a.getNextState().getId()]);
+                                          oldToNewStateMap[a.getNextState().getId()]);
               s.addArc(newArc);
             }
           }

@@ -18,7 +18,7 @@ package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.MutableFst;
-import com.github.steveash.jopenfst.State;
+import com.github.steveash.jopenfst.MutableState;
 
 import java.util.Comparator;
 
@@ -53,7 +53,7 @@ public class ArcSort {
   public static void sortBy(MutableFst fst, Comparator<Arc> cmp) {
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
-      State s = fst.getState(i);
+      MutableState s = fst.getState(i);
       s.arcSort(cmp);
     }
   }

@@ -92,10 +92,10 @@ public class FstInputOutput {
     int startid = in.readInt();
     Semiring semiring = (Semiring) in.readObject();
     int numStates = in.readInt();
-    MutableFst res = new MutableFst(new ArrayList<State>(numStates), semiring, is, os);
+    MutableFst res = new MutableFst(new ArrayList<MutableState>(numStates), semiring, is, os);
     for (int i = 0; i < numStates; i++) {
       int numArcs = in.readInt();
-      State s = new State(numArcs);
+      MutableState s = new MutableState(numArcs);
       float f = in.readFloat();
       if (f == res.getSemiring().zero()) {
         f = semiring.zero();
@@ -110,9 +110,9 @@ public class FstInputOutput {
 
     numStates = res.getStateCount();
     for (int i = 0; i < numStates; i++) {
-      State s1 = res.getState(i);
+      MutableState s1 = res.getState(i);
       for (int j = 0; j < s1.initialNumArcs; j++) {
-        Arc a = new Arc();
+        MutableArc a = new MutableArc();
         a.setIlabel(in.readInt());
         a.setOlabel(in.readInt());
         a.setWeight(in.readFloat());

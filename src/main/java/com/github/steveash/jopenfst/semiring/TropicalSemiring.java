@@ -23,6 +23,8 @@ package com.github.steveash.jopenfst.semiring;
  */
 public class TropicalSemiring extends Semiring {
 
+  public static final TropicalSemiring INSTANCE = new TropicalSemiring();
+
   private static final long serialVersionUID = 2711172386738607866L;
 
   // zero value

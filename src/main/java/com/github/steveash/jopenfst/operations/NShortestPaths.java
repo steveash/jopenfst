@@ -19,7 +19,9 @@ package com.github.steveash.jopenfst.operations;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.IndexWeight;
+import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
+import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
@@ -137,7 +139,7 @@ public class NShortestPaths {
       State prevOld = copy.getState(pair.getIndex());
       Float c = pair.getWeight();
 
-      State resNext = new State(prevOld.getFinalWeight());
+      MutableState resNext = new MutableState(prevOld.getFinalWeight());
       res.addState(resNext);
       stateMap.put(pair, resNext.getId());
       IndexWeight prevEntry = previous.get(pair);
@@ -146,13 +148,13 @@ public class NShortestPaths {
         res.setStart(resNext);
       } else {
         // add the incoming arc from previous to current
-        State previousStateNew = res.getState(stateMap.get(prevEntry));
+        MutableState previousStateNew = res.getState(stateMap.get(prevEntry));
         State previousOldState = copy.getState(prevEntry.getIndex());
         int numArcs = previousOldState.getNumArcs();
         for (int j = 0; j < numArcs; j++) {
           Arc a = previousOldState.getArc(j);
           if (a.getNextState().getId() == prevOld.getId()) {
-            previousStateNew.addArc(new Arc(a.getIlabel(), a.getOlabel(), a.getWeight(), resNext));
+            previousStateNew.addArc(new MutableArc(a.getIlabel(), a.getOlabel(), a.getWeight(), resNext));
           }
         }
       }
