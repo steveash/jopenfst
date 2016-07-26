@@ -29,6 +29,7 @@ import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
+import com.github.steveash.jopenfst.MutableSymbolTable;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
@@ -94,8 +95,8 @@ public class Convert {
         }
       }
 
-      SymbolTable.InvertedSymbolTable inputIds = fst.getInputSymbols().invert();
-      SymbolTable.InvertedSymbolTable outputIds = fst.getOutputSymbols().invert();
+      MutableSymbolTable.InvertedSymbolTable inputIds = fst.getInputSymbols().invert();
+      MutableSymbolTable.InvertedSymbolTable outputIds = fst.getOutputSymbols().invert();
       numStates = fst.getStateCount();
       for (int i = 0; i < numStates; i++) {
         State s = fst.getState(i);
@@ -149,7 +150,7 @@ public class Convert {
    * @param filename the symbols' filename
    * @return HashMap containing the impprted string-to-id mapping
    */
-  private static Optional<SymbolTable> importSymbols(String filename) {
+  private static Optional<MutableSymbolTable> importSymbols(String filename) {
 
     URL resource;
     try {
@@ -160,7 +161,7 @@ public class Convert {
     CharSource cs = asCharSource(resource, Charsets.UTF_8);
     try {
       ImmutableList<String> lines = cs.readLines();
-      SymbolTable newTable = new SymbolTable();
+      MutableSymbolTable newTable = new MutableSymbolTable();
       for (String line : lines) {
 
         String[] tokens = line.split("\\s+");
@@ -183,22 +184,22 @@ public class Convert {
    */
   public static MutableFst importFst(String basename, Semiring semiring) {
 
-    Optional<SymbolTable> maybeInputs = importSymbols(basename + ".input.syms");
+    Optional<MutableSymbolTable> maybeInputs = importSymbols(basename + ".input.syms");
 
-    SymbolTable isyms;
+    MutableSymbolTable isyms;
     if (maybeInputs.isPresent()) {
       isyms = maybeInputs.get();
     } else {
-      isyms = new SymbolTable();
+      isyms = new MutableSymbolTable();
       isyms.put(MutableFst.EPS, 0);
     }
 
-    Optional<SymbolTable> maybeOutputs = importSymbols(basename + ".output.syms");
-    SymbolTable osyms;
+    Optional<MutableSymbolTable> maybeOutputs = importSymbols(basename + ".output.syms");
+    MutableSymbolTable osyms;
     if (maybeOutputs.isPresent()) {
       osyms = maybeOutputs.get();
     } else {
-      osyms = new SymbolTable();
+      osyms = new MutableSymbolTable();
       osyms.put(MutableFst.EPS, 0);
     }
 

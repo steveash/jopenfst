@@ -49,11 +49,11 @@ public class FstInputOutput {
    * @param in the ObjectInputStream. It should be already be initialized by the caller.
    * @return the deserialized symbol map
    */
-  public static SymbolTable readStringMap(ObjectInputStream in)
+  public static MutableSymbolTable readStringMap(ObjectInputStream in)
       throws IOException, ClassNotFoundException {
 
     int mapSize = in.readInt();
-    SymbolTable syms = new SymbolTable();
+    MutableSymbolTable syms = new MutableSymbolTable();
     for (int i = 0; i < mapSize; i++) {
       String sym = in.readUTF();
       int index = in.readInt();
@@ -66,7 +66,7 @@ public class FstInputOutput {
       throws IOException, ClassNotFoundException {
 
     int mapSize = in.readInt();
-    SymbolTable syms = new SymbolTable();
+    MutableSymbolTable syms = new MutableSymbolTable();
     for (int i = 0; i < mapSize; i++) {
       String sym = in.readUTF();
       int index = i;
@@ -82,12 +82,12 @@ public class FstInputOutput {
    */
   private static MutableFst readFst(ObjectInputStream in) throws IOException,
                                                                  ClassNotFoundException {
-    SymbolTable is = readStringMap(in);
-    SymbolTable os = readStringMap(in);
+    MutableSymbolTable is = readStringMap(in);
+    MutableSymbolTable os = readStringMap(in);
     return readFstWithTables(in, is, os);
   }
 
-  private static MutableFst readFstWithTables(ObjectInputStream in, SymbolTable is, SymbolTable os)
+  private static MutableFst readFstWithTables(ObjectInputStream in, MutableSymbolTable is, MutableSymbolTable os)
       throws IOException, ClassNotFoundException {
     int startid = in.readInt();
     Semiring semiring = (Semiring) in.readObject();

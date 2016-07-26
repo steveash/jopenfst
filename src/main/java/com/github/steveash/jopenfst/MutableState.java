@@ -18,6 +18,8 @@ package com.github.steveash.jopenfst;
 
 import com.google.common.collect.Lists;
 
+import com.github.steveash.jopenfst.utils.FstUtils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -171,22 +173,7 @@ public class MutableState implements State {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-
-    MutableState state = (MutableState) o;
-
-    if (id != state.id) {
-      return false;
-    }
-    if (Float.compare(state.fnlWeight, fnlWeight) != 0) {
-      return false;
-    }
-    return arcs != null ? arcs.equals(state.arcs) : state.arcs == null;
+    return FstUtils.stateEquals(this, o);
 
   }
 

@@ -23,8 +23,8 @@ import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
+import com.github.steveash.jopenfst.MutableSymbolTable;
 import com.github.steveash.jopenfst.State;
-import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
 import java.util.HashMap;
@@ -123,7 +123,7 @@ public class RemoveEpsilon {
     Preconditions.checkNotNull(fst.getSemiring());
 
     Semiring semiring = fst.getSemiring();
-    MutableFst res = new MutableFst(semiring, new SymbolTable(fst.getInputSymbols()), new SymbolTable(fst.getOutputSymbols()));
+    MutableFst res = new MutableFst(semiring, new MutableSymbolTable(fst.getInputSymbols()), new MutableSymbolTable(fst.getOutputSymbols()));
 
     @SuppressWarnings("unchecked")
     HashMap<Integer, Float>[] cl = new HashMap[fst.getStateCount()];

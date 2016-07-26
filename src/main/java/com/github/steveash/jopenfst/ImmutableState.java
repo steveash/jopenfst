@@ -21,6 +21,8 @@ package com.github.steveash.jopenfst;
 
 import com.google.common.collect.ImmutableList;
 
+import com.github.steveash.jopenfst.utils.FstUtils;
+
 import java.util.List;
 
 /**
@@ -80,23 +82,7 @@ public class ImmutableState implements State {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-
-    ImmutableState that = (ImmutableState) o;
-
-    if (id != that.id) {
-      return false;
-    }
-    if (Float.compare(that.finalWeight, finalWeight) != 0) {
-      return false;
-    }
-    return arcs != null ? arcs.equals(that.arcs) : that.arcs == null;
-
+    return FstUtils.stateEquals(this, o);
   }
 
   @Override

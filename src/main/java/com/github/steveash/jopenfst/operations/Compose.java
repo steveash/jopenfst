@@ -26,8 +26,8 @@ import com.github.steveash.jopenfst.IndexPair;
 import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
+import com.github.steveash.jopenfst.MutableSymbolTable;
 import com.github.steveash.jopenfst.State;
-import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
 import java.util.ArrayList;
@@ -70,7 +70,7 @@ public class Compose {
 
     MutableFst
         res =
-        new MutableFst(semiring, new SymbolTable(fst1.getInputSymbols()), new SymbolTable(fst2.getOutputSymbols()));
+        new MutableFst(semiring, new MutableSymbolTable(fst1.getInputSymbols()), new MutableSymbolTable(fst2.getOutputSymbols()));
 
     HashMap<IndexPair, Integer> stateMap = Maps.newHashMap();
     ArrayList<IndexPair> queue = Lists.newArrayList();
@@ -168,8 +168,8 @@ public class Compose {
    * @param semiring the semiring to use in the operation
    * @return the filter
    */
-  private static Fst makeFilter(SymbolTable table, Semiring semiring) {
-    table = new SymbolTable(table);
+  private static Fst makeFilter(MutableSymbolTable table, Semiring semiring) {
+    table = new MutableSymbolTable(table);
     MutableFst filter = new MutableFst(semiring, table, table);
 
     int e1index = table.addNewUnique("eps1");

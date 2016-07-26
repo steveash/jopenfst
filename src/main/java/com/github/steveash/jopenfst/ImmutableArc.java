@@ -16,6 +16,8 @@
 
 package com.github.steveash.jopenfst;
 
+import com.github.steveash.jopenfst.utils.FstUtils;
+
 /**
  * Immutable version of an arc
  * @author Steve Ash
@@ -66,26 +68,7 @@ public class ImmutableArc implements Arc {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-
-    ImmutableArc that = (ImmutableArc) o;
-
-    if (ilabel != that.ilabel) {
-      return false;
-    }
-    if (olabel != that.olabel) {
-      return false;
-    }
-    if (Float.compare(that.weight, weight) != 0) {
-      return false;
-    }
-    return nextStateId == that.nextStateId;
-
+    return FstUtils.arcEquals(this, o);
   }
 
   @Override

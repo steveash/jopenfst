@@ -16,6 +16,8 @@
 
 package com.github.steveash.jopenfst;
 
+import com.github.steveash.jopenfst.utils.FstUtils;
+
 /**
  * The fst's arc implementation.
  *
@@ -129,36 +131,16 @@ public class MutableArc implements Arc {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    MutableArc other = (MutableArc) obj;
-    if (iLabel != other.iLabel) {
-      return false;
-    }
-    if (nextState == null) {
-      if (other.nextState != null) {
-        return false;
-      }
-    } else if (nextState.getId() != other.nextState.getId()) {
-      return false;
-    }
-    if (oLabel != other.oLabel) {
-      return false;
-    }
-    if (!(weight == other.weight)) {
-      if (Float.floatToIntBits(weight) != Float
-          .floatToIntBits(other.weight)) {
-        return false;
-      }
-    }
-    return true;
+    return FstUtils.arcEquals(this, obj);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = iLabel;
+    result = 31 * result + oLabel;
+    result = 31 * result + (weight != +0.0f ? Float.floatToIntBits(weight) : 0);
+    result = 31 * result + nextState.getId();
+    return result;
   }
 
   /*

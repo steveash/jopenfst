@@ -16,34 +16,12 @@
 
 package com.github.steveash.jopenfst;
 
-import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.cursors.ObjectIntCursor;
-
-import java.util.Iterator;
-
 /**
  * @author Steve Ash
  */
-public interface SymbolTable extends Iterable<ObjectIntCursor<String>> {
+public class ImmutableSymbolTable extends AbstractSymbolTable {
 
-  int size();
-
-  @Override
-  Iterator<ObjectIntCursor<String>> iterator();
-
-  Iterable<IntCursor> indexes();
-
-  int get(String symbol);
-
-  InvertedSymbolTable invert();
-
-  String[] copyAsArray();
-
-  interface InvertedSymbolTable {
-
-    /**
-     * Looks up the key for this id and throws an exception if it cant find it
-     */
-    String keyForId(int id);
+  public ImmutableSymbolTable(MutableSymbolTable table) {
+    super(table.symbolToId, table.idToSymbol);
   }
 }

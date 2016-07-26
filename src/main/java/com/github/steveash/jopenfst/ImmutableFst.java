@@ -22,6 +22,7 @@ package com.github.steveash.jopenfst;
 import com.google.common.collect.ImmutableList;
 
 import com.github.steveash.jopenfst.semiring.Semiring;
+import com.github.steveash.jopenfst.utils.FstUtils;
 
 /**
  * Immutable version of an FST that is thread safe and immutable
@@ -31,14 +32,14 @@ public class ImmutableFst implements Fst {
   private final ImmutableList<ImmutableState> states;
   private final Semiring semiring;
   private final ImmutableState start;
-  private final SymbolTable itable;
-  private final SymbolTable otable;
+  private final ImmutableSymbolTable itable;
+  private final ImmutableSymbolTable otable;
 
 
   public ImmutableFst(MutableFst copyFrom) {
     this.semiring = copyFrom.getSemiring();
-    this.itable = new SymbolTable(copyFrom.getInputSymbols());
-    this.otable = new SymbolTable(copyFrom.getOutputSymbols());
+    this.itable = new ImmutableSymbolTable(copyFrom.getInputSymbols());
+    this.otable = new ImmutableSymbolTable(copyFrom.getOutputSymbols());
 
     ImmutableList.Builder<ImmutableState> builder = ImmutableList.builder();
     for (int i = 0; i < copyFrom.getStateCount(); i++) {
@@ -74,12 +75,12 @@ public class ImmutableFst implements Fst {
   }
 
   @Override
-  public SymbolTable getInputSymbols() {
+  public ImmutableSymbolTable getInputSymbols() {
     return itable;
   }
 
   @Override
-  public SymbolTable getOutputSymbols() {
+  public ImmutableSymbolTable getOutputSymbols() {
     return otable;
   }
 
@@ -113,5 +114,20 @@ public class ImmutableFst implements Fst {
   @Override
   public void throwIfInvalid() {
     // cant even construct an invalid immutable fst
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return FstUtils.fstEquals(this, obj);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = semiring != null ? semiring.hashCode() : 0;
+    result = 31 * result + (states != null ? states.hashCode() : 0);
+    result = 31 * result + (start != null ? start.hashCode() : 0);
+    result = 31 * result + (itable != null ? itable.hashCode() : 0);
+    result = 31 * result + (otable != null ? otable.hashCode() : 0);
+    return result;
   }
 }

@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 
 import com.github.steveash.jopenfst.semiring.LogSemiring;
 import com.github.steveash.jopenfst.semiring.Semiring;
+import com.github.steveash.jopenfst.utils.FstUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,8 +35,8 @@ import java.util.Collection;
 public class MutableFst implements Fst {
 
   public static MutableFst copyFrom(Fst fst) {
-    MutableFst copy = new MutableFst(fst.getSemiring(), new SymbolTable(fst.getInputSymbols()),
-                       new SymbolTable(fst.getOutputSymbols()));
+    MutableFst copy = new MutableFst(fst.getSemiring(), new MutableSymbolTable(fst.getInputSymbols()),
+                       new MutableSymbolTable(fst.getOutputSymbols()));
     // build up states
     for (int i = 0; i < fst.getStateCount(); i++) {
       State source = fst.getState(i);
@@ -60,13 +61,13 @@ public class MutableFst implements Fst {
   }
 
   private final Semiring semiring;
-  private ArrayList<MutableState> states;
+  private final ArrayList<MutableState> states;
   private MutableState start;
-  private SymbolTable inputSymbols;
-  private SymbolTable outputSymbols;
+  private MutableSymbolTable inputSymbols;
+  private MutableSymbolTable outputSymbols;
 
   public MutableFst() {
-    this(makeDefaultRing(), new SymbolTable(), new SymbolTable());
+    this(makeDefaultRing(), new MutableSymbolTable(), new MutableSymbolTable());
   }
 
   private static Semiring makeDefaultRing() {
@@ -80,11 +81,11 @@ public class MutableFst implements Fst {
    * @param numStates the initial capacity
    */
   public MutableFst(int numStates) {
-    this(new ArrayList<MutableState>(numStates), makeDefaultRing(), new SymbolTable(), new SymbolTable());
+    this(new ArrayList<MutableState>(numStates), makeDefaultRing(), new MutableSymbolTable(), new MutableSymbolTable());
   }
 
   public MutableFst(int numStates, Semiring semiring) {
-    this(new ArrayList<MutableState>(numStates), semiring, new SymbolTable(), new SymbolTable());
+    this(new ArrayList<MutableState>(numStates), semiring, new MutableSymbolTable(), new MutableSymbolTable());
   }
 
   /**
@@ -93,15 +94,15 @@ public class MutableFst implements Fst {
    * @param s the fst's semiring
    */
   public MutableFst(Semiring s) {
-    this(s, new SymbolTable(), new SymbolTable());
+    this(s, new MutableSymbolTable(), new MutableSymbolTable());
   }
 
-  public MutableFst(Semiring semiring, SymbolTable inputSymbols, SymbolTable outputSymbols) {
+  public MutableFst(Semiring semiring, MutableSymbolTable inputSymbols, MutableSymbolTable outputSymbols) {
     this(Lists.<MutableState>newArrayList(), semiring, inputSymbols, outputSymbols);
   }
 
-  protected MutableFst(ArrayList<MutableState> states, Semiring semiring, SymbolTable inputSymbols,
-                       SymbolTable outputSymbols) {
+  protected MutableFst(ArrayList<MutableState> states, Semiring semiring, MutableSymbolTable inputSymbols,
+                       MutableSymbolTable outputSymbols) {
     this.states = states;
     this.semiring = semiring;
     this.inputSymbols = inputSymbols;
@@ -186,12 +187,12 @@ public class MutableFst implements Fst {
   }
 
   @Override
-  public SymbolTable getInputSymbols() {
+  public MutableSymbolTable getInputSymbols() {
     return inputSymbols;
   }
 
   @Override
-  public SymbolTable getOutputSymbols() {
+  public MutableSymbolTable getOutputSymbols() {
     return outputSymbols;
   }
 
@@ -206,19 +207,19 @@ public class MutableFst implements Fst {
   }
 
   public void setInputSymbolsFrom(Fst sourceInputSymbols) {
-    this.inputSymbols = new SymbolTable(sourceInputSymbols.getInputSymbols());
+    this.inputSymbols = new MutableSymbolTable(sourceInputSymbols.getInputSymbols());
   }
 
   public void setInputSymbolsFromThatOutput(Fst that) {
-    this.inputSymbols = new SymbolTable(that.getOutputSymbols());
+    this.inputSymbols = new MutableSymbolTable(that.getOutputSymbols());
   }
 
   public void setOutputSymbolsFrom(Fst sourceOutputSymbols) {
-    this.outputSymbols = new SymbolTable(sourceOutputSymbols.getOutputSymbols());
+    this.outputSymbols = new MutableSymbolTable(sourceOutputSymbols.getOutputSymbols());
   }
 
   public void setOutputSymbolsFromThatInput(Fst that) {
-    this.outputSymbols = new SymbolTable(that.getInputSymbols());
+    this.outputSymbols = new MutableSymbolTable(that.getInputSymbols());
   }
 
   @Override
@@ -328,29 +329,7 @@ public class MutableFst implements Fst {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-
-    MutableFst fst = (MutableFst) o;
-
-    if (semiring != null ? !semiring.equals(fst.semiring) : fst.semiring != null) {
-      return false;
-    }
-    if (states != null ? !states.equals(fst.states) : fst.states != null) {
-      return false;
-    }
-    if (start != null ? !start.equals(fst.start) : fst.start != null) {
-      return false;
-    }
-    if (inputSymbols != null ? !inputSymbols.equals(fst.inputSymbols) : fst.inputSymbols != null) {
-      return false;
-    }
-    return outputSymbols != null ? outputSymbols.equals(fst.outputSymbols) : fst.outputSymbols == null;
-
+    return FstUtils.fstEquals(this, o);
   }
 
   @Override
