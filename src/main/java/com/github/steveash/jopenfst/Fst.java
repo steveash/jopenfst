@@ -18,6 +18,8 @@ package com.github.steveash.jopenfst;
 
 import com.github.steveash.jopenfst.semiring.Semiring;
 
+import javax.annotation.Nullable;
+
 /**
  * Client interface for an FST
  * @author Steve Ash
@@ -35,9 +37,16 @@ public interface Fst {
 
   State getState(int index);
 
+  State getState(String name);
+
   SymbolTable getInputSymbols();
 
   SymbolTable getOutputSymbols();
+
+  @Nullable
+  SymbolTable getStateSymbols();
+
+  boolean isUsingStateSymbols();
 
   int getInputSymbolCount();
 

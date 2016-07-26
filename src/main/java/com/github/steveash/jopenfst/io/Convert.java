@@ -50,6 +50,11 @@ import static com.google.common.io.Resources.asCharSource;
  */
 public class Convert {
 
+  private static final String INPUT_SYMS = ".input.syms";
+  private static final String OUTPUT_SYMS = ".output.syms";
+  private static final String FST_TXT = ".fst.txt";
+  private static final String STATES_SYMS = ".states.syms";
+
   /**
    * Default private Constructor.
    */
@@ -65,9 +70,12 @@ public class Convert {
    * @param basename the files' base name
    */
   public static void export(Fst fst, String basename) {
-    exportSymbols(fst.getInputSymbols(), basename + ".input.syms");
-    exportSymbols(fst.getOutputSymbols(), basename + ".output.syms");
-    exportFst(fst, basename + ".fst.txt");
+    exportSymbols(fst.getInputSymbols(), basename + INPUT_SYMS);
+    exportSymbols(fst.getOutputSymbols(), basename + OUTPUT_SYMS);
+    if (fst.isUsingStateSymbols()) {
+      exportSymbols(fst.getStateSymbols(), basename + STATES_SYMS);
+    }
+    exportFst(fst, basename + FST_TXT);
   }
 
   /**
@@ -184,7 +192,7 @@ public class Convert {
    */
   public static MutableFst importFst(String basename, Semiring semiring) {
 
-    Optional<MutableSymbolTable> maybeInputs = importSymbols(basename + ".input.syms");
+    Optional<MutableSymbolTable> maybeInputs = importSymbols(basename + INPUT_SYMS);
 
     MutableSymbolTable isyms;
     if (maybeInputs.isPresent()) {
@@ -194,7 +202,7 @@ public class Convert {
       isyms.put(MutableFst.EPS, 0);
     }
 
-    Optional<MutableSymbolTable> maybeOutputs = importSymbols(basename + ".output.syms");
+    Optional<MutableSymbolTable> maybeOutputs = importSymbols(basename + OUTPUT_SYMS);
     MutableSymbolTable osyms;
     if (maybeOutputs.isPresent()) {
       osyms = maybeOutputs.get();
@@ -203,10 +211,13 @@ public class Convert {
       osyms.put(MutableFst.EPS, 0);
     }
 
-    SymbolTable ssyms = importSymbols(basename + ".states.syms").orNull();
+    MutableSymbolTable ssyms = importSymbols(basename + STATES_SYMS).orNull();
     MutableFst fst = new MutableFst(semiring, isyms, osyms);
+    if (ssyms != null) {
+      fst.useStateSymbols(ssyms);
+    }
 
-    CharSource cs = asCharSource(Resources.getResource(basename + ".fst.txt"), Charsets.UTF_8);
+    CharSource cs = asCharSource(Resources.getResource(basename + FST_TXT), Charsets.UTF_8);
     try (BufferedReader br = cs.openBufferedStream()) {
       boolean firstLine = true;
       String strLine;

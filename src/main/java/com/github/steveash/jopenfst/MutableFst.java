@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
+import javax.annotation.Nullable;
+
 /**
  * A mutable finite state transducer implementation.
  */
@@ -36,7 +38,10 @@ public class MutableFst implements Fst {
 
   public static MutableFst copyFrom(Fst fst) {
     MutableFst copy = new MutableFst(fst.getSemiring(), new MutableSymbolTable(fst.getInputSymbols()),
-                       new MutableSymbolTable(fst.getOutputSymbols()));
+                                     new MutableSymbolTable(fst.getOutputSymbols()));
+    if (fst.isUsingStateSymbols()) {
+      copy.useStateSymbols(new MutableSymbolTable(fst.getStateSymbols()));
+    }
     // build up states
     for (int i = 0; i < fst.getStateCount(); i++) {
       State source = fst.getState(i);
@@ -65,6 +70,7 @@ public class MutableFst implements Fst {
   private MutableState start;
   private MutableSymbolTable inputSymbols;
   private MutableSymbolTable outputSymbols;
+  private MutableSymbolTable stateSymbols;
 
   public MutableFst() {
     this(makeDefaultRing(), new MutableSymbolTable(), new MutableSymbolTable());
@@ -109,6 +115,24 @@ public class MutableFst implements Fst {
     this.outputSymbols = outputSymbols;
   }
 
+  @Nullable
+  @Override
+  public MutableSymbolTable getStateSymbols() {
+    return stateSymbols;
+  }
+
+  /**
+   * This sets a state symbols table; this takes ownership of this so don't share symbol
+   * tables
+   */
+  public void useStateSymbols(MutableSymbolTable stateSymbolsToOwn) {
+    this.stateSymbols = stateSymbolsToOwn;
+  }
+
+  public void useStateSymbols() {
+    this.stateSymbols = new MutableSymbolTable();
+  }
+
   /**
    * Get the initial states
    */
@@ -130,14 +154,21 @@ public class MutableFst implements Fst {
    *
    * @param start the initial state
    */
-  public void setStart(MutableState start) {
+  public MutableState setStart(MutableState start) {
     Preconditions.checkArgument(start.getId() >= 0, "must set id before setting start");
+    throwIfSymbolTableMissingId(start.getId());
     this.start = start;
+    return start;
   }
 
+
   public MutableState newStartState() {
+    return newStartState(null);
+  }
+
+  public MutableState newStartState(@Nullable String startStateSymbol) {
     Preconditions.checkArgument(start == null, "cant add more than one start state");
-    MutableState newStart = newState();
+    MutableState newStart = newState(startStateSymbol);
     setStart(newStart);
     return newStart;
   }
@@ -155,21 +186,39 @@ public class MutableFst implements Fst {
     return states.get(index);
   }
 
+  @Override
+  public State getState(String name) {
+    Preconditions.checkState(stateSymbols != null, "cant ask by name if not using state symbols");
+    return getState(stateSymbols.get(name));
+  }
+
   /**
    * Adds a state to the fst
    *
    * @param state the state to be added
    */
   public MutableState addState(MutableState state) {
-    Preconditions.checkArgument(state.getId() == - 1, "trying to add a state that already has id");
+    return addState(state, null);
+  }
+
+  public MutableState addState(MutableState state, @Nullable String newStateSymbol) {
+    Preconditions.checkArgument(state.getId() == -1, "trying to add a state that already has id");
     this.states.add(state);
     state.id = states.size() - 1;
+    if (stateSymbols != null) {
+      Preconditions.checkNotNull(newStateSymbol, "if using symbol table for states everything must have "
+                                                 + "a symbol");
+      stateSymbols.put(newStateSymbol, state.id);
+    } else {
+      Preconditions.checkState(newStateSymbol == null, "cant pass state name if not using symbol table");
+    }
     return state;
   }
 
-  public void setState(int id, MutableState state) {
-    Preconditions.checkArgument(state.getId() == - 1, "trying to add a state that already has id");
+  public MutableState setState(int id, MutableState state) {
+    Preconditions.checkArgument(state.getId() == -1, "trying to add a state that already has id");
     state.setId(id);
+    throwIfSymbolTableMissingId(id);
     // they provided the id so index properly
     if (id >= this.states.size()) {
       this.states.ensureCapacity(id + 1);
@@ -179,11 +228,16 @@ public class MutableFst implements Fst {
     }
     Preconditions.checkState(this.states.get(id) == null, "cant write two states with ", id);
     this.states.set(id, state);
+    return state;
   }
 
   public MutableState newState() {
+    return newState(null);
+  }
+
+  public MutableState newState(@Nullable String newStateSymbol) {
     MutableState s = new MutableState();
-    return addState(s);
+    return addState(s, newStateSymbol);
   }
 
   @Override
@@ -240,6 +294,11 @@ public class MutableFst implements Fst {
   }
 
   @Override
+  public boolean isUsingStateSymbols() {
+    return stateSymbols != null;
+  }
+
+  @Override
   public void throwIfInvalid() {
     Preconditions.checkNotNull(semiring, "must have a semiring");
     Preconditions.checkNotNull(start, "must have a start state");
@@ -268,7 +327,6 @@ public class MutableFst implements Fst {
 
   /**
    * Deletes the given states and remaps the existing state ids
-   * @param statesToDelete
    */
   public void deleteStates(Collection<? extends State> statesToDelete) {
     for (State state : statesToDelete) {
@@ -279,6 +337,7 @@ public class MutableFst implements Fst {
 
   /**
    * Deletes a state;
+   *
    * @param state the state to delete
    */
   private void deleteState(State state) {
@@ -324,6 +383,13 @@ public class MutableFst implements Fst {
       if (states.get(i) == null) {
         throw new IllegalStateException("Cannot have a null state in an FST. State " + i);
       }
+    }
+  }
+
+  private void throwIfSymbolTableMissingId(int id) {
+    if (stateSymbols != null && !stateSymbols.containsId(id)) {
+      throw new IllegalArgumentException("If you're using a state symbol table then every state "
+                                         + "must be in the state symbol table");
     }
   }
 

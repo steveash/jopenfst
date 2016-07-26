@@ -102,4 +102,8 @@ public class MutableSymbolTable extends AbstractSymbolTable {
     }
   }
 
+  public boolean containsId(int id) {
+    return idToSymbol.containsKey(id);
+  }
+
 }

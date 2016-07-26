@@ -19,10 +19,13 @@
  */
 package com.github.steveash.jopenfst;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import com.github.steveash.jopenfst.semiring.Semiring;
 import com.github.steveash.jopenfst.utils.FstUtils;
+
+import javax.annotation.Nullable;
 
 /**
  * Immutable version of an FST that is thread safe and immutable
@@ -34,12 +37,17 @@ public class ImmutableFst implements Fst {
   private final ImmutableState start;
   private final ImmutableSymbolTable itable;
   private final ImmutableSymbolTable otable;
-
+  private final ImmutableSymbolTable stable;
 
   public ImmutableFst(MutableFst copyFrom) {
     this.semiring = copyFrom.getSemiring();
     this.itable = new ImmutableSymbolTable(copyFrom.getInputSymbols());
     this.otable = new ImmutableSymbolTable(copyFrom.getOutputSymbols());
+    if (copyFrom.isUsingStateSymbols()) {
+      this.stable = new ImmutableSymbolTable(copyFrom.getStateSymbols());
+    } else {
+      this.stable = null;
+    }
 
     ImmutableList.Builder<ImmutableState> builder = ImmutableList.builder();
     for (int i = 0; i < copyFrom.getStateCount(); i++) {
@@ -75,6 +83,12 @@ public class ImmutableFst implements Fst {
   }
 
   @Override
+  public State getState(String name) {
+    Preconditions.checkState(stable != null, "cant use get by name if not using state symols");
+    return getState(stable.get(name));
+  }
+
+  @Override
   public ImmutableSymbolTable getInputSymbols() {
     return itable;
   }
@@ -82,6 +96,12 @@ public class ImmutableFst implements Fst {
   @Override
   public ImmutableSymbolTable getOutputSymbols() {
     return otable;
+  }
+
+  @Nullable
+  @Override
+  public ImmutableSymbolTable getStateSymbols() {
+    return stable;
   }
 
   @Override
@@ -109,6 +129,11 @@ public class ImmutableFst implements Fst {
     if (!this.otable.equals(that.getInputSymbols())) {
       throw new IllegalArgumentException("Symbol tables don't match, cant compose " + this + " to " + that);
     }
+  }
+
+  @Override
+  public boolean isUsingStateSymbols() {
+    return stable != null;
   }
 
   @Override

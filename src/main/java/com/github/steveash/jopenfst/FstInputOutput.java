@@ -62,19 +62,6 @@ public class FstInputOutput {
     return syms;
   }
 
-  public static SymbolTable readStringMapOld(ObjectInputStream in)
-      throws IOException, ClassNotFoundException {
-
-    int mapSize = in.readInt();
-    MutableSymbolTable syms = new MutableSymbolTable();
-    for (int i = 0; i < mapSize; i++) {
-      String sym = in.readUTF();
-      int index = i;
-      syms.put(sym, index);
-    }
-    return syms;
-  }
-
   /**
    * Deserializes an Fst from an ObjectInputStream
    *
@@ -84,15 +71,23 @@ public class FstInputOutput {
                                                                  ClassNotFoundException {
     MutableSymbolTable is = readStringMap(in);
     MutableSymbolTable os = readStringMap(in);
-    return readFstWithTables(in, is, os);
+
+    MutableSymbolTable ss = null;
+    if (in.readBoolean()) {
+      ss = readStringMap(in);
+    }
+    return readFstWithTables(in, is, os, ss);
   }
 
-  private static MutableFst readFstWithTables(ObjectInputStream in, MutableSymbolTable is, MutableSymbolTable os)
+  private static MutableFst readFstWithTables(ObjectInputStream in, MutableSymbolTable is, MutableSymbolTable os, MutableSymbolTable ss)
       throws IOException, ClassNotFoundException {
     int startid = in.readInt();
     Semiring semiring = (Semiring) in.readObject();
     int numStates = in.readInt();
     MutableFst res = new MutableFst(new ArrayList<MutableState>(numStates), semiring, is, os);
+    if (ss != null) {
+      res.useStateSymbols(ss);
+    }
     for (int i = 0; i < numStates; i++) {
       int numArcs = in.readInt();
       MutableState s = new MutableState(numArcs);
@@ -169,6 +164,10 @@ public class FstInputOutput {
   private static void writeFst(MutableFst fst, ObjectOutputStream out) throws IOException {
     writeStringMap(out, fst.getInputSymbols());
     writeStringMap(out, fst.getOutputSymbols());
+    out.writeBoolean(fst.isUsingStateSymbols()); // whether or not we used a state symbol table
+    if (fst.isUsingStateSymbols()) {
+      writeStringMap(out, fst.getStateSymbols());
+    }
     out.writeInt(fst.getStartState().getId());
 
     out.writeObject(fst.getSemiring());

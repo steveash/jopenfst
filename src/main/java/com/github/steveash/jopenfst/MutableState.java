@@ -49,7 +49,7 @@ public class MutableState implements State {
   /**
    * Default Constructor
    */
-  protected MutableState() {
+  public MutableState() {
     arcs = Lists.newArrayList();
   }
 
