@@ -38,7 +38,7 @@ public class MutableState implements State {
   protected int id = -1;
 
   // Final weight
-  private float fnlWeight;
+  private double fnlWeight;
 
   // Outgoing arcs
   private final ArrayList<MutableArc> arcs;
@@ -56,7 +56,7 @@ public class MutableState implements State {
   /**
    * Constructor specifying the state's final weight
    */
-  public MutableState(float fnlWeight) {
+  public MutableState(double fnlWeight) {
     this.fnlWeight = fnlWeight;
     this.arcs = Lists.newArrayList();
   }
@@ -81,7 +81,7 @@ public class MutableState implements State {
    * Get the state's final Weight
    */
   @Override
-  public float getFinalWeight() {
+  public double getFinalWeight() {
     return fnlWeight;
   }
 
@@ -90,7 +90,7 @@ public class MutableState implements State {
    *
    * @param fnlfloat the final weight to set
    */
-  public void setFinalWeight(float fnlfloat) {
+  public void setFinalWeight(double fnlfloat) {
     this.fnlWeight = fnlfloat;
   }
 
@@ -180,7 +180,8 @@ public class MutableState implements State {
   @Override
   public int hashCode() {
     int result = id;
-    result = 31 * result + (fnlWeight != +0.0f ? Float.floatToIntBits(fnlWeight) : 0);
+    long temp = fnlWeight != +0.0 ? Double.doubleToLongBits(fnlWeight) : 0;
+    result = 31 * result * ((int) (temp ^ (temp >>> 32)));
     result = 31 * result + (arcs != null ? arcs.hashCode() : 0);
     return result;
   }

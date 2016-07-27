@@ -26,11 +26,11 @@ public class ImmutableArc implements Arc {
 
   private final int ilabel;
   private final int olabel;
-  private final float weight;
+  private final double weight;
   private final int nextStateId;
   private volatile ImmutableState nextStateRef;
 
-  public ImmutableArc(int ilabel, int olabel, float weight, int nextStateId) {
+  public ImmutableArc(int ilabel, int olabel, double weight, int nextStateId) {
     this.ilabel = ilabel;
     this.olabel = olabel;
     this.weight = weight;
@@ -38,7 +38,7 @@ public class ImmutableArc implements Arc {
   }
 
   @Override
-  public float getWeight() {
+  public double getWeight() {
     return weight;
   }
 
@@ -72,13 +72,16 @@ public class ImmutableArc implements Arc {
   }
 
   @Override
-  public int hashCode() {
-    int result = ilabel;
-    result = 31 * result + olabel;
-    result = 31 * result + (weight != +0.0f ? Float.floatToIntBits(weight) : 0);
-    result = 31 * result + nextStateId;
-    return result;
-  }
+    public int hashCode() {
+      int result;
+      long temp;
+      temp = Double.doubleToLongBits(weight);
+      result = (int) (temp ^ (temp >>> 32));
+      result = 31 * result + ilabel;
+      result = 31 * result + olabel;
+      result = 31 * result + nextStateId;
+      return result;
+    }
 
   @Override
   public String toString() {

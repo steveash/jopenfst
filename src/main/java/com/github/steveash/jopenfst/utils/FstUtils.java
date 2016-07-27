@@ -16,6 +16,8 @@
 
 package com.github.steveash.jopenfst.utils;
 
+import com.google.common.math.DoubleMath;
+
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.State;
@@ -26,6 +28,11 @@ import com.github.steveash.jopenfst.State;
 public class FstUtils {
 
   public static boolean fstEquals(Object thisFstObj, Object thatFstObj) {
+    return fstEquals(thisFstObj, thatFstObj, Double.MIN_VALUE);
+  }
+
+  public static boolean fstEquals(Object thisFstObj, Object thatFstObj,
+                                  double epsilon) {
     if (thisFstObj == thatFstObj) {
       return true;
     }
@@ -47,11 +54,11 @@ public class FstUtils {
       return false;
     }
     for (int i = 0; i < thisFst.getStateCount(); i++) {
-      if (!thisFst.getState(i).equals(thatFst.getState(i))) {
+      if (!FstUtils.stateEquals(thisFst.getState(i), thatFst.getState(i), epsilon)) {
         return false;
       }
     }
-    if (thisFst.getStartState() != null ? !thisFst.getStartState().equals(thatFst.getStartState()) : thatFst.getStartState() != null) {
+    if (thisFst.getStartState() != null ? (thisFst.getStartState().getId() != thatFst.getStartState().getId()) : thatFst.getStartState() != null) {
       return false;
     }
     if (thisFst.getInputSymbols() != null ? !thisFst.getInputSymbols().equals(thatFst.getInputSymbols()) : thatFst.getInputSymbols() != null) {
@@ -61,6 +68,11 @@ public class FstUtils {
   }
 
   public static boolean arcEquals(Object thisArcObj, Object thatArcObj) {
+    return arcEquals(thisArcObj, thatArcObj, Double.MIN_VALUE);
+  }
+
+  public static boolean arcEquals(Object thisArcObj, Object thatArcObj,
+                                  double epsilon) {
     if (thisArcObj == thatArcObj) {
       return true;
     }
@@ -82,8 +94,7 @@ public class FstUtils {
       return false;
     }
     if (!(thisArc.getWeight() == thatArc.getWeight())) {
-      if (Float.floatToIntBits(thisArc.getWeight()) != Float
-          .floatToIntBits(thatArc.getWeight())) {
+      if (!DoubleMath.fuzzyEquals(thisArc.getWeight(), thatArc.getWeight(), epsilon)) {
         return false;
       }
     }
@@ -91,6 +102,10 @@ public class FstUtils {
   }
 
   public static boolean stateEquals(Object thisStateObj, Object thatStateObj) {
+    return stateEquals(thisStateObj, thatStateObj, Double.MIN_VALUE);
+  }
+
+  public static boolean stateEquals(Object thisStateObj, Object thatStateObj, double epsilon) {
     if (thisStateObj == thatStateObj) {
       return true;
     }
@@ -107,9 +122,17 @@ public class FstUtils {
     if (thisState.getId() != thatState.getId()) {
       return false;
     }
-    if (Float.compare(thatState.getFinalWeight(), thisState.getFinalWeight()) != 0) {
+    if (!DoubleMath.fuzzyEquals(thatState.getFinalWeight(), thisState.getFinalWeight(), epsilon)) {
       return false;
     }
-    return thisState.getArcs().equals(thatState.getArcs());
+    if (thisState.getArcs().size() != thatState.getArcs().size()) {
+      return false;
+    }
+    for (int i = 0; i < thisState.getArcs().size(); i++) {
+      if (!arcEquals(thisState.getArc(i), thatState.getArc(i), epsilon)) {
+        return false;
+      }
+    }
+    return true;
   }
 }

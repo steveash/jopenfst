@@ -260,12 +260,12 @@ public class Convert {
           // Adding arc
           int iLabel = isyms.getOrAdd(tokens[2]);
           int oLabel = osyms.getOrAdd(tokens[3]);
-          float arcWeight = Float.parseFloat(tokens[4]);
+          double arcWeight = Double.parseDouble(tokens[4]);
           MutableArc arc = new MutableArc(iLabel, oLabel, arcWeight, nextState);
           inputState.addArc(arc);
         } else {
           // This is a final weight
-          float finalWeight = Float.parseFloat(tokens[1]);
+          double finalWeight = Double.parseDouble(tokens[1]);
           inputState.setFinalWeight(finalWeight);
         }
       }

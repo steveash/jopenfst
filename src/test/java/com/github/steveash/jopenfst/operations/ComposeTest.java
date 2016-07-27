@@ -20,6 +20,7 @@ import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
+import com.github.steveash.jopenfst.utils.FstUtils;
 
 import org.junit.Test;
 
@@ -47,6 +48,6 @@ public class ComposeTest {
 
     Fst fstComposed = Compose.compose(fstA, fstB, new TropicalSemiring());
 
-    assertTrue(composed.equals(fstComposed));
+    assertTrue(FstUtils.fstEquals(composed, fstComposed, 0.00001));
   }
 }

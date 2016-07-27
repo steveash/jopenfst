@@ -52,12 +52,12 @@ public class Determinize {
   }
 
   private static void incrementOrAppend(
-      ArrayList<IndexWeight> queue, State state, Semiring semiring, float toAdd) {
+      ArrayList<IndexWeight> queue, State state, Semiring semiring, double toAdd) {
     for (int i = 0; i < queue.size(); i++) {
       IndexWeight maybe = queue.get(i);
       if (state.getId() == maybe.getIndex()) {
         // already there so lets replace this with an incremented version
-        float newVal = semiring.plus(maybe.getWeight(), toAdd);
+        double newVal = semiring.plus(maybe.getWeight(), toAdd);
         IndexWeight updated = new IndexWeight(maybe.getIndex(), newVal);
         queue.set(i, updated);
         return;
@@ -136,11 +136,11 @@ public class Determinize {
       queue.remove(0);
       ArrayList<Integer> labels = getUniqueLabels(fst, p);
       for (int label : labels) {
-        Float wnew = semiring.zero();
+        double wnew = semiring.zero();
         // calc w'
         for (IndexWeight ps : p) {
           State old = fst.getState(ps.getIndex());
-          Float u = ps.getWeight();
+          double u = ps.getWeight();
           int numArcs = old.getNumArcs();
           for (int j = 0; j < numArcs; j++) {
             Arc arc = old.getArc(j);
@@ -156,14 +156,14 @@ public class Determinize {
         ArrayList<IndexWeight> forQueue = new ArrayList<>();
         for (IndexWeight ps : p) {
           State old = fst.getState(ps.getIndex());
-          Float u = ps.getWeight();
-          Float wnewRevert = semiring.divide(semiring.one(), wnew);
+          double u = ps.getWeight();
+          double wnewRevert = semiring.divide(semiring.one(), wnew);
           int numArcs = old.getNumArcs();
           for (int j = 0; j < numArcs; j++) {
             Arc arc = old.getArc(j);
             if (label == arc.getIlabel()) {
               State oldstate = arc.getNextState();
-              float toAdd = semiring.times(wnewRevert, semiring.times(u, arc.getWeight()));
+              double toAdd = semiring.times(wnewRevert, semiring.times(u, arc.getWeight()));
               incrementOrAppend(forQueue, oldstate, semiring, toAdd);
             }
           }
@@ -176,9 +176,9 @@ public class Determinize {
           res.addState(qnew);
           stateMapper.put(qnewid, qnew);
           // update new state's weight
-          Float fw = qnew.getFinalWeight();
+          double fw = qnew.getFinalWeight();
           for (IndexWeight ps : forQueue) {
-            float stateWeight = fst.getState(ps.getIndex()).getFinalWeight();
+            double stateWeight = fst.getState(ps.getIndex()).getFinalWeight();
             fw = semiring.plus(fw, semiring.times(stateWeight, ps.getWeight()));
           }
           qnew.setFinalWeight(fw);

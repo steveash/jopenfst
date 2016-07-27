@@ -28,58 +28,37 @@ public class TropicalSemiring extends Semiring {
   private static final long serialVersionUID = 2711172386738607866L;
 
   // zero value
-  private static float zero = Float.POSITIVE_INFINITY;
+  private static double zero = Double.POSITIVE_INFINITY;
 
   // one value
-  private static float one = 0.f;
+  private static double one = 0.f;
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see
-   * edu.cmu.sphinx.fst.weight.AbstractSemiring#Plus(edu.cmu.sphinx.fst.weight
-   * .float, edu.cmu.sphinx.fst.weight.float)
-   */
   @Override
-  public float plus(float w1, float w2) {
+  public double plus(double w1, double w2) {
     if (!isMember(w1) || !isMember(w2)) {
-      return Float.NEGATIVE_INFINITY;
+      return Double.NEGATIVE_INFINITY;
     }
 
     return w1 < w2 ? w1 : w2;
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see
-   * edu.cmu.sphinx.fst.weight.AbstractSemiring#Times(edu.cmu.sphinx.fst.weight
-   * .float, edu.cmu.sphinx.fst.weight.float)
-   */
   @Override
-  public float times(float w1, float w2) {
+  public double times(double w1, double w2) {
     if (!isMember(w1) || !isMember(w2)) {
-      return Float.NEGATIVE_INFINITY;
+      return Double.NEGATIVE_INFINITY;
     }
 
     return w1 + w2;
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see
-   * edu.cmu.sphinx.fst.weight.AbstractSemiring#Divide(edu.cmu.sphinx.fst.
-   * weight.float, edu.cmu.sphinx.fst.weight.float)
-   */
   @Override
-  public float divide(float w1, float w2) {
+  public double divide(double w1, double w2) {
     if (!isMember(w1) || !isMember(w2)) {
-      return Float.NEGATIVE_INFINITY;
+      return Double.NEGATIVE_INFINITY;
     }
 
     if (w2 == zero) {
-      return Float.NEGATIVE_INFINITY;
+      return Double.NEGATIVE_INFINITY;
     } else if (w1 == zero) {
       return zero;
     }
@@ -93,7 +72,7 @@ public class TropicalSemiring extends Semiring {
    * @see edu.cmu.sphinx.fst.weight.AbstractSemiring#zero()
    */
   @Override
-  public float zero() {
+  public double zero() {
     return zero;
   }
 
@@ -103,7 +82,7 @@ public class TropicalSemiring extends Semiring {
    * @see edu.cmu.sphinx.fst.weight.AbstractSemiring#one()
    */
   @Override
-  public float one() {
+  public double one() {
     return one;
   }
 
@@ -115,9 +94,9 @@ public class TropicalSemiring extends Semiring {
    * .weight.float)
    */
   @Override
-  public boolean isMember(float w) {
-    return (!Float.isNaN(w)) // not a NaN
-           && (w != Float.NEGATIVE_INFINITY); // and different from -inf
+  public boolean isMember(double w) {
+    return (!Double.isNaN(w)) // not a NaN
+           && (w != Double.NEGATIVE_INFINITY); // and different from -inf
   }
 
   /*
@@ -126,7 +105,7 @@ public class TropicalSemiring extends Semiring {
    * @see edu.cmu.sphinx.fst.semiring.Semiring#reverse(float)
    */
   @Override
-  public float reverse(float w1) {
+  public double reverse(double w1) {
     return w1;
   }
 }

@@ -91,7 +91,7 @@ public class FstInputOutput {
     for (int i = 0; i < numStates; i++) {
       int numArcs = in.readInt();
       MutableState s = new MutableState(numArcs);
-      float f = in.readFloat();
+      double f = in.readDouble();
       if (f == res.getSemiring().zero()) {
         f = semiring.zero();
       } else if (f == semiring.one()) {
@@ -110,7 +110,7 @@ public class FstInputOutput {
         MutableArc a = new MutableArc();
         a.setIlabel(in.readInt());
         a.setOlabel(in.readInt());
-        a.setWeight(in.readFloat());
+        a.setWeight(in.readDouble());
         a.setNextState(res.getState(in.readInt()));
         s1.addArc(a);
       }
@@ -177,7 +177,7 @@ public class FstInputOutput {
     for (int i = 0; i < fst.getStateCount(); i++) {
       State s = fst.getState(i);
       out.writeInt(s.getNumArcs());
-      out.writeFloat(s.getFinalWeight());
+      out.writeDouble(s.getFinalWeight());
       out.writeInt(s.getId());
       stateMap.put(s, i);
     }
@@ -190,7 +190,7 @@ public class FstInputOutput {
         Arc a = s.getArc(j);
         out.writeInt(a.getIlabel());
         out.writeInt(a.getOlabel());
-        out.writeFloat(a.getWeight());
+        out.writeDouble(a.getWeight());
         out.writeInt(stateMap.get(a.getNextState()));
       }
     }

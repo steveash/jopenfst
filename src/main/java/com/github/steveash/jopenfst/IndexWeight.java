@@ -17,16 +17,16 @@
 package com.github.steveash.jopenfst;
 
 /**
- * A tuple of an index (a state id, an arc id, whatever) + a weight (as a float)
+ * A tuple of an index (a state id, an arc id, whatever) + a weight (as a double)
  * This is immutable and is useful when you are storing these in collections
  * @author Steve Ash
  */
 public class IndexWeight {
 
   private final int index;
-  private final float weight;
+  private final double weight;
 
-  public IndexWeight(int index, float weight) {
+  public IndexWeight(int index, double weight) {
     this.index = index;
     this.weight = weight;
   }
@@ -35,7 +35,7 @@ public class IndexWeight {
     return index;
   }
 
-  public float getWeight() {
+  public double getWeight() {
     return weight;
   }
 
@@ -53,14 +53,17 @@ public class IndexWeight {
     if (index != that.index) {
       return false;
     }
-    return Float.compare(that.weight, weight) == 0;
+    return Double.compare(that.weight, weight) == 0;
 
   }
 
   @Override
   public int hashCode() {
-    int result = index;
-    result = 31 * result + (weight != +0.0f ? Float.floatToIntBits(weight) : 0);
+    int result;
+    long temp;
+    result = index;
+    temp = Double.doubleToLongBits(weight);
+    result = 31 * result + (int) (temp ^ (temp >>> 32));
     return result;
   }
 

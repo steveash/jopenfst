@@ -24,7 +24,7 @@ import java.util.List;
  */
 public interface State {
 
-  float getFinalWeight();
+  double getFinalWeight();
 
   int getId();
 

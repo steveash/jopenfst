@@ -26,7 +26,7 @@ import com.github.steveash.jopenfst.utils.FstUtils;
 public class MutableArc implements Arc {
 
   // Arc's weight
-  private float weight;
+  private double weight;
 
   // input label
   private int iLabel;
@@ -51,7 +51,7 @@ public class MutableArc implements Arc {
    * @param weight    the arc's weight
    * @param nextState the arc's next state
    */
-  public MutableArc(int iLabel, int oLabel, float weight, MutableState nextState) {
+  public MutableArc(int iLabel, int oLabel, double weight, MutableState nextState) {
     this.weight = weight;
     this.iLabel = iLabel;
     this.oLabel = oLabel;
@@ -62,14 +62,14 @@ public class MutableArc implements Arc {
    * Get the arc's weight
    */
   @Override
-  public float getWeight() {
+  public double getWeight() {
     return weight;
   }
 
   /**
    * Set the arc's weight
    */
-  public void setWeight(float weight) {
+  public void setWeight(double weight) {
     this.weight = weight;
   }
 
@@ -124,11 +124,6 @@ public class MutableArc implements Arc {
     this.nextState = nextState;
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     return FstUtils.arcEquals(this, obj);
@@ -136,18 +131,16 @@ public class MutableArc implements Arc {
 
   @Override
   public int hashCode() {
-    int result = iLabel;
+    int result;
+    long temp;
+    temp = Double.doubleToLongBits(weight);
+    result = (int) (temp ^ (temp >>> 32));
+    result = 31 * result + iLabel;
     result = 31 * result + oLabel;
-    result = 31 * result + (weight != +0.0f ? Float.floatToIntBits(weight) : 0);
-    result = 31 * result + nextState.getId();
+    result = 31 * result + (nextState != null ? nextState.hashCode() : 0);
     return result;
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     return "(" + iLabel + ", " + oLabel + ", " + weight + ", " + nextState

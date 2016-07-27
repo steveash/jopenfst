@@ -20,6 +20,7 @@ import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
 import com.github.steveash.jopenfst.semiring.ProbabilitySemiring;
+import com.github.steveash.jopenfst.utils.FstUtils;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -30,7 +31,7 @@ import org.junit.Test;
 public class RemoveEpsilonTest {
 
   @Test
-  public void testRmEpsilon() {
+  public void testRemoveEpsilon() {
     System.out.println("Testing RmEpsilon...");
 
     MutableFst fst = Convert.importFst("data/tests/algorithms/rmepsilon/A",
@@ -39,7 +40,7 @@ public class RemoveEpsilonTest {
                                             new ProbabilitySemiring());
     Fst rmEpsilon = RemoveEpsilon.remove(fst);
 
-    if (!fstRmEps.equals(rmEpsilon)) {
+    if (!FstUtils.fstEquals(fstRmEps, rmEpsilon, 0.0000001)) {
       Assert.fail("Should be " + fstRmEps.toString() + " but was " + rmEpsilon.toString());
     }
   }

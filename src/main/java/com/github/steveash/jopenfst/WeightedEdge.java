@@ -24,9 +24,9 @@ public class WeightedEdge {
 
   private final int from;
   private final int to;
-  private final float weight;
+  private final double weight;
 
-  public WeightedEdge(int from, int to, float weight) {
+  public WeightedEdge(int from, int to, double weight) {
     this.from = from;
     this.to = to;
     this.weight = weight;
@@ -40,7 +40,7 @@ public class WeightedEdge {
     return to;
   }
 
-  public float getWeight() {
+  public double getWeight() {
     return weight;
   }
 
@@ -61,15 +61,18 @@ public class WeightedEdge {
     if (to != that.to) {
       return false;
     }
-    return Float.compare(that.weight, weight) == 0;
+    return Double.compare(that.weight, weight) == 0;
 
   }
 
   @Override
   public int hashCode() {
-    int result = from;
+    int result;
+    long temp;
+    result = from;
     result = 31 * result + to;
-    result = 31 * result + (weight != +0.0f ? Float.floatToIntBits(weight) : 0);
+    temp = Double.doubleToLongBits(weight);
+    result = 31 * result + (int) (temp ^ (temp >>> 32));
     return result;
   }
 

@@ -33,40 +33,40 @@ public abstract class Semiring implements Serializable {
   /**
    * Semiring's plus operation
    */
-  public abstract float plus(float w1, float w2);
+  public abstract double plus(double w1, double w2);
 
-  public abstract float reverse(float w1);
+  public abstract double reverse(double w1);
 
   /**
    * Semiring's times operation
    */
-  public abstract float times(float w1, float w2);
+  public abstract double times(double w1, double w2);
 
   /**
    * Semiring's divide operation
    */
-  public abstract float divide(float w1, float w2);
+  public abstract double divide(double w1, double w2);
 
   /**
    * Semiring's zero element
    */
-  public abstract float zero();
+  public abstract double zero();
 
   /**
    * Semiring's one element
    */
-  public abstract float one();
+  public abstract double one();
 
   /**
    * Checks if a value is a valid one the semiring
    */
-  public abstract boolean isMember(float w);
+  public abstract boolean isMember(double w);
 
-  public boolean isZero(float candidate) {
+  public boolean isZero(double candidate) {
     return candidate == zero();
   }
 
-  public boolean isNotZero(float candidate) {
+  public boolean isNotZero(double candidate) {
     return candidate != zero();
   }
 
@@ -113,7 +113,7 @@ public abstract class Semiring implements Serializable {
    *
    * We define the strict version of this order below.
    */
-  public boolean naturalLess(float w1, float w2) {
+  public boolean naturalLess(double w1, double w2) {
     return (this.plus(w1, w2) == w1) && (w1 != w2);
   }
 

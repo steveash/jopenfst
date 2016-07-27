@@ -50,12 +50,12 @@ public class NShortestPaths {
    * @param fst the fst to calculate the shortest distances
    * @return the array containing the shortest distances
    */
-  private static float[] shortestDistance(Fst fst) {
+  private static double[] shortestDistance(Fst fst) {
 
     Fst reversed = Reverse.reverse(fst);
 
-    float[] d = new float[reversed.getStateCount()];
-    float[] r = new float[reversed.getStateCount()];
+    double[] d = new double[reversed.getStateCount()];
+    double[] r = new double[reversed.getStateCount()];
 
     Semiring semiring = reversed.getSemiring();
 
@@ -78,15 +78,15 @@ public class NShortestPaths {
 
     while (queue.size() > 0) {
       State q = stateMap[queue.remove(0)];
-      float rnew = r[q.getId()];
+      double rnew = r[q.getId()];
       r[q.getId()] = semiring.zero();
       int numArcs = q.getNumArcs();
       for (int i = 0; i < numArcs; i++) {
         Arc a = q.getArc(i);
         State nextState = a.getNextState();
-        float dnext = d[a.getNextState().getId()];
-        float dnextnew = semiring.plus(dnext,
-                                       semiring.times(rnew, a.getWeight()));
+        double dnext = d[a.getNextState().getId()];
+        double dnextnew = semiring.plus(dnext,
+                                        semiring.times(rnew, a.getWeight()));
         if (dnext != dnextnew) {
           d[a.getNextState().getId()] = dnextnew;
           r[a.getNextState().getId()] = semiring.plus(r[a
@@ -112,7 +112,7 @@ public class NShortestPaths {
   public static MutableFst apply(Fst fst, int n) {
     fst.throwIfInvalid();
     Semiring semiring = fst.getSemiring();
-    float[] d = shortestDistance(fst);
+    double[] d = shortestDistance(fst);
     MutableFst res = new MutableFst(semiring);
     res.setInputSymbolsFrom(fst);
     res.setOutputSymbolsFrom(fst);
@@ -137,7 +137,7 @@ public class NShortestPaths {
     while (queue.size() > 0) {
       IndexWeight pair = getLess(queue, d, semiring);
       State prevOld = copy.getState(pair.getIndex());
-      Float c = pair.getWeight();
+      double c = pair.getWeight();
 
       MutableState resNext = new MutableState(prevOld.getFinalWeight());
       res.addState(resNext);
@@ -170,7 +170,7 @@ public class NShortestPaths {
         int numArcs = prevOld.getNumArcs();
         for (int j = 0; j < numArcs; j++) {
           Arc a = prevOld.getArc(j);
-          float cnew = semiring.times(c, a.getWeight());
+          double cnew = semiring.times(c, a.getWeight());
           IndexWeight next = new IndexWeight(a.getNextState().getId(), cnew);
           previous.put(next, pair);
           queue.add(next);
@@ -184,15 +184,15 @@ public class NShortestPaths {
   /**
    * Removes from the queue the pair with the lower path cost
    */
-  private static IndexWeight getLess(ArrayList<IndexWeight> queue, float[] d,
-                                                   Semiring semiring) {
+  private static IndexWeight getLess(ArrayList<IndexWeight> queue, double[] d,
+                                     Semiring semiring) {
     IndexWeight res = queue.get(0);
 
     for (IndexWeight p : queue) {
       int previousStateId = res.getIndex();
       int nextStateId = p.getIndex();
-      float previous = res.getWeight();
-      float next = p.getWeight();
+      double previous = res.getWeight();
+      double next = p.getWeight();
       if (semiring.naturalLess(
           semiring.times(next, d[nextStateId]),
           semiring.times(previous, d[previousStateId]))) {

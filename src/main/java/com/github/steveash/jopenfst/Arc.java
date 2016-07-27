@@ -21,7 +21,7 @@ package com.github.steveash.jopenfst;
  */
 public interface Arc {
 
-  float getWeight();
+  double getWeight();
 
   int getIlabel();
 

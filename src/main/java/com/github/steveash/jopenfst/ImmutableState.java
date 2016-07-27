@@ -31,14 +31,14 @@ import java.util.List;
 public class ImmutableState implements State {
 
   private final int id;
-  private final float finalWeight;
+  private final double finalWeight;
   private final ImmutableList<ImmutableArc> arcs;
 
   public ImmutableState(State copyFrom) {
     this(copyFrom.getId(), copyFrom.getFinalWeight(), copyFrom.getArcs());
   }
 
-  public ImmutableState(int id, float finalWeight, List<? extends Arc> copyFrom) {
+  public ImmutableState(int id, double finalWeight, List<? extends Arc> copyFrom) {
     this.id = id;
     this.finalWeight = finalWeight;
     ImmutableList.Builder<ImmutableArc> builder = ImmutableList.builder();
@@ -50,7 +50,7 @@ public class ImmutableState implements State {
 
 
   @Override
-  public float getFinalWeight() {
+  public double getFinalWeight() {
     return finalWeight;
   }
 
@@ -88,7 +88,8 @@ public class ImmutableState implements State {
   @Override
   public int hashCode() {
     int result = id;
-    result = 31 * result + (finalWeight != +0.0f ? Float.floatToIntBits(finalWeight) : 0);
+    long temp = finalWeight != +0.0 ? Double.doubleToLongBits(finalWeight) : 0;
+    result = 31 * result * ((int) (temp ^ (temp >>> 32)));
     result = 31 * result + (arcs != null ? arcs.hashCode() : 0);
     return result;
   }

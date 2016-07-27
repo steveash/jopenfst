@@ -45,9 +45,9 @@ public class RemoveEpsilon {
   /**
    * Put a new state in the epsilon closure
    */
-  private static void put(State fromState, State toState, float weight,
-                          HashMap<Integer, Float>[] cl) {
-    HashMap<Integer, Float> tmp = cl[fromState.getId()];
+  private static void put(State fromState, State toState, double weight,
+                          HashMap<Integer, Double>[] cl) {
+    HashMap<Integer, Double> tmp = cl[fromState.getId()];
     if (tmp == null) {
       tmp = new HashMap<>();
       cl[fromState.getId()] = tmp;
@@ -58,9 +58,9 @@ public class RemoveEpsilon {
   /**
    * Add a state in the epsilon closure
    */
-  private static void add(State fromState, State toState, float weight,
-                          HashMap<Integer, Float>[] cl, Semiring semiring) {
-    Float old = getPathWeight(fromState, toState, cl);
+  private static void add(State fromState, State toState, double weight,
+                          HashMap<Integer, Double>[] cl, Semiring semiring) {
+    Double old = getPathWeight(fromState, toState, cl);
     if (old == null) {
       put(fromState, toState, weight, cl);
     } else {
@@ -73,10 +73,10 @@ public class RemoveEpsilon {
    * Calculate the epsilon closure
    */
   private static void calcClosure(Fst fst, State state,
-                                  HashMap<Integer, Float>[] cl, Semiring semiring) {
+                                  HashMap<Integer, Double>[] cl, Semiring semiring) {
     State s = state;
 
-    float pathWeight;
+    double pathWeight;
     int numArcs = s.getNumArcs();
     for (int j = 0; j < numArcs; j++) {
       Arc a = s.getArc(j);
@@ -101,8 +101,8 @@ public class RemoveEpsilon {
   /**
    * Get an epsilon path's cost in epsilon closure
    */
-  private static Float getPathWeight(State in, State out,
-                                     HashMap<Integer, Float>[] cl) {
+  private static Double getPathWeight(State in, State out,
+                                      HashMap<Integer, Double>[] cl) {
     if (cl[in.getId()] != null) {
       return cl[in.getId()].get(out.getId());
     }
@@ -126,7 +126,7 @@ public class RemoveEpsilon {
     MutableFst res = new MutableFst(semiring, new MutableSymbolTable(fst.getInputSymbols()), new MutableSymbolTable(fst.getOutputSymbols()));
 
     @SuppressWarnings("unchecked")
-    HashMap<Integer, Float>[] cl = new HashMap[fst.getStateCount()];
+    HashMap<Integer, Double>[] cl = new HashMap[fst.getStateCount()];
     MutableState[] oldToNewStateMap = new MutableState[fst.getStateCount()];
     State[] newToOldStateMap = new State[fst.getStateCount()];
 

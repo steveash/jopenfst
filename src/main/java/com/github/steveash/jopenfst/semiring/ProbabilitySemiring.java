@@ -27,10 +27,10 @@ public class ProbabilitySemiring extends Semiring {
 
   private static final long serialVersionUID = 5592668313009971909L;
   // zero value
-  private static float zero = 0.f;
+  private static double zero = 0.f;
 
   // one value
-  private static float one = 1.f;
+  private static double one = 1.f;
 
   /*
    * (non-Javadoc)
@@ -40,9 +40,9 @@ public class ProbabilitySemiring extends Semiring {
    * .float, edu.cmu.sphinx.fst.weight.float)
    */
   @Override
-  public float plus(float w1, float w2) {
+  public double plus(double w1, double w2) {
     if (!isMember(w1) || !isMember(w2)) {
-      return Float.NEGATIVE_INFINITY;
+      return Double.NEGATIVE_INFINITY;
     }
 
     return w1 + w2;
@@ -56,9 +56,9 @@ public class ProbabilitySemiring extends Semiring {
    * .float, edu.cmu.sphinx.fst.weight.float)
    */
   @Override
-  public float times(float w1, float w2) {
+  public double times(double w1, double w2) {
     if (!isMember(w1) || !isMember(w2)) {
-      return Float.NEGATIVE_INFINITY;
+      return Double.NEGATIVE_INFINITY;
     }
 
     return w1 * w2;
@@ -72,8 +72,8 @@ public class ProbabilitySemiring extends Semiring {
    * weight.float, edu.cmu.sphinx.fst.weight.float)
    */
   @Override
-  public float divide(float w1, float w2) {
-    return Float.NEGATIVE_INFINITY;
+  public double divide(double w1, double w2) {
+    return Double.NEGATIVE_INFINITY;
   }
 
   /*
@@ -82,7 +82,7 @@ public class ProbabilitySemiring extends Semiring {
    * @see edu.cmu.sphinx.fst.weight.AbstractSemiring#zero()
    */
   @Override
-  public float zero() {
+  public double zero() {
     return zero;
   }
 
@@ -92,7 +92,7 @@ public class ProbabilitySemiring extends Semiring {
    * @see edu.cmu.sphinx.fst.weight.AbstractSemiring#one()
    */
   @Override
-  public float one() {
+  public double one() {
     return one;
   }
 
@@ -104,8 +104,8 @@ public class ProbabilitySemiring extends Semiring {
    * .float)
    */
   @Override
-  public boolean isMember(float w) {
-    return !Float.isNaN(w) // not a NaN,
+  public boolean isMember(double w) {
+    return !Double.isNaN(w) // not a NaN,
            && (w >= 0); // and positive
   }
 
@@ -115,7 +115,7 @@ public class ProbabilitySemiring extends Semiring {
    * @see edu.cmu.sphinx.fst.semiring.Semiring#reverse(float)
    */
   @Override
-  public float reverse(float w1) {
+  public double reverse(double w1) {
     throw new UnsupportedOperationException("not implemented");
 //    return Float.NEGATIVE_INFINITY;
   }
