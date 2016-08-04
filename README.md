@@ -1,20 +1,58 @@
 jopenfst
 ========
 
-Java port of the C++ [OpenFST library](http://www.openfst.org/twiki/bin/view/FST/WebHome) which provides a library to 
+A partial Java port of the C++ [OpenFST library](http://www.openfst.org/twiki/bin/view/FST/WebHome) which provides a library to
  build weighted finite state transducers and perform various common FST tasks such as:
 
 * Determinization
-* Minimization
 * Union / Intersection 
 * Composition
+* Shortest Path computation
  
 This project was originally forked from the CMU Sphinx project.  This was originally work by John 
 Salatas as part of his GSOC 2012 project to port phonetisaurus over to java.  Since then the code appears to be 
 abandoned and doesn't appear to have been integrated in to the final CMU Sphinx project trunk.  I needed a decent 
-WFST library for some of my stuff, so I'm going to use his code as a starting point.  There are some rough edges 
-in the original code that I intend to clean up. In the meantime, consider this *alpha quality*.  When I am comfortable
-with the code I will push it to Maven Central Repo.
+WFST library for some of my stuff, so I used his code as a starting point. I have cleaned up quite a bit
+ of the code, really changed the APIs, and updated unit tests. My JG2P project uses this and thus I have
+ some confidence that the code is working accurately, I would still consider this *beta quality*. When I am comfortable
+with the stability I will push a v1.0 to Maven Central Repo.
+
+Quick Start:
+------------
+The API started out pretty close to OpenFST but is diverging over time. The basic abstractions of `Fst`, `State`, `Arc`,
+and `SymbolTable` have conceptual analogs in OpenFST. In jOpenFst there are Mutable* and Immutable* implementations
+of each. As you programmatically build up your WFSTs you will use the Mutable API.  If you want to de/serialize larger
+models (large WFSTs built from training data that are used to construct lattices) and these models don't need to change
+any more, then you can convert the mutable instance into an immutable instance after you are done building it.
+ImmutableFsts are likely faster at some operations and also are smarter about reducing unnecessary copying of state.
+
+The MutableFst api is probably the most important place to start, and as of this writing -- it is still evolving as
+I use the library myself in my JG2P project and discover appropriate changes.  Here is a sample showing how to
+construct a WFST which shows the basic operations of fsts, states, arcs, and symbols.
+
+```
+MutableFst fst = new MutableFst(TropicalSemiring.INSTANCE);
+// by default states are only identified by indexes assigned by the FST, if you want to instead
+// identify your states with symbols (and read/write a state symbol table) then call this before
+// adding any states to the FST
+fst.useStateSymbols();
+MutableState startState = fst.newStartState("<start>");
+// setting a final weight makes this state an eligible final state
+fst.newState("</s>").setFinalWeight(0.0);
+
+// you can add symbols manually to the symbol table
+int symbolId = fst.getInputSymbols().getOrAdd("<eps>");
+fst.getOutputSymbols().getOrAdd("<eps>");
+
+// add arcs on the MutableState instances directly or using convenience methods on the fst instance
+// if using state labels you can pass the labels (if they dont exist, new states will be created)
+// params are inputSatate, inputLabel, outputLabel, outputState, arcWeight
+fst.addArc("state1", "inA", "outA", "state2", 1.0);
+
+// alternatively (or if no state symbols) you can use the state instances
+fst.addArc(startState, "inC", "outD", fst.getOrNewState("state3"), 123.0);
+
+```
 
 Resources:
 ------------

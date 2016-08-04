@@ -32,6 +32,7 @@ import java.util.Collection;
 import javax.annotation.Nullable;
 
 import static com.github.steveash.jopenfst.utils.FstUtils.symbolTableEffectiveCopy;
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A mutable finite state transducer implementation.
@@ -177,7 +178,7 @@ public class MutableFst implements Fst {
    * @param start the initial state
    */
   public MutableState setStart(MutableState start) {
-    Preconditions.checkArgument(start.getId() >= 0, "must set id before setting start");
+    checkArgument(start.getId() >= 0, "must set id before setting start");
     throwIfSymbolTableMissingId(start.getId());
     this.start = start;
     return start;
@@ -189,7 +190,7 @@ public class MutableFst implements Fst {
   }
 
   public MutableState newStartState(@Nullable String startStateSymbol) {
-    Preconditions.checkArgument(start == null, "cant add more than one start state");
+    checkArgument(start == null, "cant add more than one start state");
     MutableState newStart = newState(startStateSymbol);
     setStart(newStart);
     return newStart;
@@ -224,7 +225,7 @@ public class MutableFst implements Fst {
   }
 
   public MutableState addState(MutableState state, @Nullable String newStateSymbol) {
-    Preconditions.checkArgument(state.getId() == -1, "trying to add a state that already has id");
+    checkArgument(state.getId() == -1, "trying to add a state that already has id");
     this.states.add(state);
     state.id = states.size() - 1;
     if (stateSymbols != null) {
@@ -238,7 +239,7 @@ public class MutableFst implements Fst {
   }
 
   public MutableState setState(int id, MutableState state) {
-    Preconditions.checkArgument(state.getId() == -1, "trying to add a state that already has id");
+    checkArgument(state.getId() == -1, "trying to add a state that already has id");
     state.setId(id);
     throwIfSymbolTableMissingId(id);
     // they provided the id so index properly
@@ -268,6 +269,39 @@ public class MutableFst implements Fst {
       return getState(stateSymbol);
     }
     return newState(stateSymbol);
+  }
+
+  /**
+   * Adds a new arc in the FST between startStateSymbol and endStateSymbol with inSymbol and outSymbol
+   * and edge weight; if the state symbols or in/out symbols dont exist then they will be added
+   * @param startStateSymbol
+   * @param inSymbol
+   * @param outSymbol
+   * @param endStateSymbol
+   * @param weight
+   * @return
+   */
+  public MutableArc addArc(String startStateSymbol, String inSymbol, String outSymbol, String endStateSymbol, double weight) {
+    Preconditions.checkNotNull(stateSymbols, "cant use this without state symbols; call useStateSymbols()");
+    return addArc(
+        getOrNewState(startStateSymbol),
+        inSymbol,
+        outSymbol,
+        getOrNewState(endStateSymbol),
+        weight
+    );
+  }
+
+  public MutableArc addArc(MutableState startState, String inSymbol, String outSymbol, MutableState endState, double weight) {
+    checkArgument(this.states.get(startState.getId()) == startState, "cant pass state that doesnt exist in fst");
+    checkArgument(this.states.get(endState.getId()) == endState, "cant pass end state that doesnt exist in fst");
+    MutableArc newArc = new MutableArc(inputSymbols.getOrAdd(inSymbol),
+                                    outputSymbols.getOrAdd(outSymbol),
+                                    weight,
+                                    endState
+    );
+    startState.addArc(newArc);
+    return newArc;
   }
 
   @Override
