@@ -31,17 +31,26 @@ import java.util.Collection;
 
 import javax.annotation.Nullable;
 
+import static com.github.steveash.jopenfst.utils.FstUtils.symbolTableEffectiveCopy;
+
 /**
  * A mutable finite state transducer implementation.
  */
 public class MutableFst implements Fst {
 
-  public static MutableFst copyFrom(Fst fst) {
-    MutableFst copy = new MutableFst(fst.getSemiring(), new MutableSymbolTable(fst.getInputSymbols()),
-                                     new MutableSymbolTable(fst.getOutputSymbols()));
+  public static MutableFst emptyWithCopyOfSymbols(Fst fst) {
+    MutableFst copy = new MutableFst(fst.getSemiring(),
+                                     symbolTableEffectiveCopy(fst.getInputSymbols()),
+                                     symbolTableEffectiveCopy(fst.getOutputSymbols())
+    );
     if (fst.isUsingStateSymbols()) {
-      copy.useStateSymbols(new MutableSymbolTable(fst.getStateSymbols()));
+      copy.useStateSymbols(symbolTableEffectiveCopy(fst.getStateSymbols()));
     }
+    return copy;
+  }
+
+  public static MutableFst copyFrom(Fst fst) {
+    MutableFst copy = emptyWithCopyOfSymbols(fst);
     // build up states
     for (int i = 0; i < fst.getStateCount(); i++) {
       State source = fst.getState(i);
@@ -68,9 +77,9 @@ public class MutableFst implements Fst {
   private final Semiring semiring;
   private final ArrayList<MutableState> states;
   private MutableState start;
-  private MutableSymbolTable inputSymbols;
-  private MutableSymbolTable outputSymbols;
-  private MutableSymbolTable stateSymbols;
+  private WriteableSymbolTable inputSymbols;
+  private WriteableSymbolTable outputSymbols;
+  private WriteableSymbolTable stateSymbols;
 
   public MutableFst() {
     this(makeDefaultRing(), new MutableSymbolTable(), new MutableSymbolTable());
@@ -103,12 +112,25 @@ public class MutableFst implements Fst {
     this(s, new MutableSymbolTable(), new MutableSymbolTable());
   }
 
-  public MutableFst(Semiring semiring, MutableSymbolTable inputSymbols, MutableSymbolTable outputSymbols) {
-    this(Lists.<MutableState>newArrayList(), semiring, inputSymbols, outputSymbols);
+  /**
+   * Constructs a new MutableFst with the given semiring and mutable symbol tables; NOTE that these
+   * symbol tables are being GIVEN to own by this MutableFst (transfer of ownership); tables should
+   * not be SHARED by FSTs so if you want to make copies -- then do it yourself or set the tables
+   * after construction via one of the applicable methods
+   * @param semiring
+   * @param inputSymbolsToOwn
+   * @param outputSymbolsToOwn
+   */
+  public MutableFst(Semiring semiring, WriteableSymbolTable inputSymbolsToOwn, WriteableSymbolTable outputSymbolsToOwn) {
+    this(Lists.<MutableState>newArrayList(), semiring, inputSymbolsToOwn, outputSymbolsToOwn);
   }
 
-  protected MutableFst(ArrayList<MutableState> states, Semiring semiring, MutableSymbolTable inputSymbols,
-                       MutableSymbolTable outputSymbols) {
+  public MutableFst(WriteableSymbolTable inputSymbolsToOwn, WriteableSymbolTable outputSymbolsToOwn) {
+    this(Lists.<MutableState>newArrayList(), makeDefaultRing(), inputSymbolsToOwn, outputSymbolsToOwn);
+  }
+
+  protected MutableFst(ArrayList<MutableState> states, Semiring semiring, WriteableSymbolTable inputSymbols,
+                       WriteableSymbolTable outputSymbols) {
     this.states = states;
     this.semiring = semiring;
     this.inputSymbols = inputSymbols;
@@ -117,7 +139,7 @@ public class MutableFst implements Fst {
 
   @Nullable
   @Override
-  public MutableSymbolTable getStateSymbols() {
+  public WriteableSymbolTable getStateSymbols() {
     return stateSymbols;
   }
 
@@ -125,7 +147,7 @@ public class MutableFst implements Fst {
    * This sets a state symbols table; this takes ownership of this so don't share symbol
    * tables
    */
-  public void useStateSymbols(MutableSymbolTable stateSymbolsToOwn) {
+  public void useStateSymbols(WriteableSymbolTable stateSymbolsToOwn) {
     this.stateSymbols = stateSymbolsToOwn;
   }
 
@@ -187,7 +209,7 @@ public class MutableFst implements Fst {
   }
 
   @Override
-  public State getState(String name) {
+  public MutableState getState(String name) {
     Preconditions.checkState(stateSymbols != null, "cant ask by name if not using state symbols");
     return getState(stateSymbols.get(name));
   }
@@ -240,13 +262,21 @@ public class MutableFst implements Fst {
     return addState(s, newStateSymbol);
   }
 
+  public MutableState getOrNewState(String stateSymbol) {
+    Preconditions.checkNotNull(stateSymbols, "cant use this without state symbols");
+    if (stateSymbols.contains(stateSymbol)) {
+      return getState(stateSymbol);
+    }
+    return newState(stateSymbol);
+  }
+
   @Override
-  public MutableSymbolTable getInputSymbols() {
+  public WriteableSymbolTable getInputSymbols() {
     return inputSymbols;
   }
 
   @Override
-  public MutableSymbolTable getOutputSymbols() {
+  public WriteableSymbolTable getOutputSymbols() {
     return outputSymbols;
   }
 
@@ -260,20 +290,28 @@ public class MutableFst implements Fst {
     return outputSymbols.size();
   }
 
-  public void setInputSymbolsFrom(Fst sourceInputSymbols) {
-    this.inputSymbols = new MutableSymbolTable(sourceInputSymbols.getInputSymbols());
+  public void setInputSymbolsAsCopyFrom(Fst sourceInputSymbols) {
+    this.inputSymbols = symbolTableEffectiveCopy(sourceInputSymbols.getInputSymbols());
   }
 
-  public void setInputSymbolsFromThatOutput(Fst that) {
-    this.inputSymbols = new MutableSymbolTable(that.getOutputSymbols());
+  public void setInputSymbolsAsCopyFromThatOutput(Fst that) {
+    this.inputSymbols = symbolTableEffectiveCopy(that.getOutputSymbols());
   }
 
-  public void setOutputSymbolsFrom(Fst sourceOutputSymbols) {
-    this.outputSymbols = new MutableSymbolTable(sourceOutputSymbols.getOutputSymbols());
+  public void setOutputSymbolsAsCopyFrom(Fst sourceOutputSymbols) {
+    this.outputSymbols = symbolTableEffectiveCopy(sourceOutputSymbols.getOutputSymbols());
   }
 
-  public void setOutputSymbolsFromThatInput(Fst that) {
-    this.outputSymbols = new MutableSymbolTable(that.getInputSymbols());
+  public void setOutputSymbolsAsCopyFromThatInput(Fst that) {
+    this.outputSymbols = symbolTableEffectiveCopy(that.getInputSymbols());
+  }
+
+  public void setOutputSymbolsAsCopy(SymbolTable copyFrom) {
+    this.outputSymbols = symbolTableEffectiveCopy(copyFrom);
+  }
+
+  public void setInputSymbolsAsCopy(SymbolTable copyFrom) {
+    this.inputSymbols = symbolTableEffectiveCopy(copyFrom);
   }
 
   @Override
@@ -288,7 +326,7 @@ public class MutableFst implements Fst {
 
   @Override
   public void throwIfThisOutputIsNotThatInput(Fst that) {
-    if (!this.outputSymbols.equals(that.getInputSymbols())) {
+    if (!FstUtils.symbolTableEquals(outputSymbols, that.getInputSymbols())) {
       throw new IllegalArgumentException("Symbol tables don't match, cant compose " + this + " to " + that);
     }
   }
@@ -387,7 +425,7 @@ public class MutableFst implements Fst {
   }
 
   private void throwIfSymbolTableMissingId(int id) {
-    if (stateSymbols != null && !stateSymbols.containsId(id)) {
+    if (stateSymbols != null && !stateSymbols.invert().containsKey(id)) {
       throw new IllegalArgumentException("If you're using a state symbol table then every state "
                                          + "must be in the state symbol table");
     }

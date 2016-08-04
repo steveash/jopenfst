@@ -51,8 +51,8 @@ public class Reverse {
     Semiring semiring = fst.getSemiring();
 
     MutableFst res = new MutableFst(fst.getStateCount(), semiring);
-    res.setInputSymbolsFromThatOutput(fst);
-    res.setOutputSymbolsFromThatInput(fst);
+    res.setInputSymbolsAsCopyFromThatOutput(fst);
+    res.setOutputSymbolsAsCopyFromThatInput(fst);
 
     MutableState[] stateMap = new MutableState[fst.getStateCount()];
     int numStates = fst.getStateCount();

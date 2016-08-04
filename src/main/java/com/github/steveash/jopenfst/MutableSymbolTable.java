@@ -16,37 +16,31 @@
 
 package com.github.steveash.jopenfst;
 
-import com.carrotsearch.hppc.cursors.IntCursor;
-
-import java.util.Iterator;
-
 /**
  * A mutable symbol table to record mappings between symbols and ids
  *
  * @author Steve Ash
  */
-public class MutableSymbolTable extends AbstractSymbolTable {
+public class MutableSymbolTable extends AbstractSymbolTable implements WriteableSymbolTable {
 
   private int nextId;
 
   public MutableSymbolTable() {
     this.nextId = 0;
+  }
 
+  // protected constructor used by the union symbol table
+  MutableSymbolTable(int nextId) {
+    this.nextId = nextId;
   }
 
   public MutableSymbolTable(SymbolTable copyFrom) {
-    super(((AbstractSymbolTable)copyFrom).symbolToId, ((AbstractSymbolTable)copyFrom).idToSymbol);
+    super(copyFrom);
 
     if (copyFrom instanceof MutableSymbolTable) {
       this.nextId = ((MutableSymbolTable)copyFrom).nextId;
     } else {
-      // just calculate the next id
-      Iterator<IntCursor> iter = ((AbstractSymbolTable)copyFrom).idToSymbol.keys().iterator();
-      int next = -1;
-      while (iter.hasNext()) {
-        next = Math.max(next, iter.next().value);
-      }
-      this.nextId = next + 1;
+      this.nextId = AbstractSymbolTable.maxIdIn(copyFrom) + 1;
     }
   }
 
@@ -67,6 +61,7 @@ public class MutableSymbolTable extends AbstractSymbolTable {
   /**
    * Returns the new id or the existing id if it already existed
    */
+  @Override
   public int getOrAdd(String symbol) {
     int thisId = nextId;
     if (symbolToId.putIfAbsent(symbol, thisId)) {
@@ -80,13 +75,7 @@ public class MutableSymbolTable extends AbstractSymbolTable {
     }
   }
 
-  public int addNew(String symbol) {
-    int thisId = nextId;
-    putMappingOrThrow(symbol, thisId);
-    nextId += 1;
-    return thisId;
-  }
-
+  @Override
   public int addNewUnique(String prefix) {
     int thisId = nextId;
     String symbol = prefix + "$$_" + thisId;
@@ -95,15 +84,11 @@ public class MutableSymbolTable extends AbstractSymbolTable {
     return thisId;
   }
 
+  @Override
   public void put(String symbol, int id) {
     putMappingOrThrow(symbol, id);
     if (id >= nextId) {
       nextId = id + 1;
     }
   }
-
-  public boolean containsId(int id) {
-    return idToSymbol.containsKey(id);
-  }
-
 }

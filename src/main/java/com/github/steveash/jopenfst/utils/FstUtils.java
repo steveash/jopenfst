@@ -18,9 +18,15 @@ package com.github.steveash.jopenfst.utils;
 
 import com.google.common.math.DoubleMath;
 
+import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.ImmutableSymbolTable;
+import com.github.steveash.jopenfst.MutableSymbolTable;
 import com.github.steveash.jopenfst.State;
+import com.github.steveash.jopenfst.SymbolTable;
+import com.github.steveash.jopenfst.UnionSymbolTable;
+import com.github.steveash.jopenfst.WriteableSymbolTable;
 
 /**
  * @author Steve Ash
@@ -61,10 +67,13 @@ public class FstUtils {
     if (thisFst.getStartState() != null ? (thisFst.getStartState().getId() != thatFst.getStartState().getId()) : thatFst.getStartState() != null) {
       return false;
     }
-    if (thisFst.getInputSymbols() != null ? !thisFst.getInputSymbols().equals(thatFst.getInputSymbols()) : thatFst.getInputSymbols() != null) {
+    if (thisFst.getInputSymbols() != null ? !FstUtils.symbolTableEquals(thisFst.getInputSymbols(), thatFst.getInputSymbols()) : thatFst.getInputSymbols() != null) {
       return false;
     }
-    return thisFst.getOutputSymbols() != null ? thisFst.getOutputSymbols().equals(thatFst.getOutputSymbols()) : thatFst.getOutputSymbols() == null;
+    if (thisFst.getStateSymbols() != null ? !FstUtils.symbolTableEquals(thisFst.getStateSymbols(), thatFst.getStateSymbols()) : thatFst.getStateSymbols() != null) {
+      return false;
+    }
+    return thisFst.getOutputSymbols() != null ? FstUtils.symbolTableEquals(thisFst.getOutputSymbols(), thatFst.getOutputSymbols()) :thatFst.getOutputSymbols() == null;
   }
 
   public static boolean arcEquals(Object thisArcObj, Object thatArcObj) {
@@ -134,5 +143,51 @@ public class FstUtils {
       }
     }
     return true;
+  }
+
+  public static boolean symbolTableEquals(Object thisSyms, Object thatSyms) {
+    if (thisSyms == thatSyms) {
+      return true;
+    }
+    if (thisSyms == null || thatSyms == null) {
+      return false;
+    }
+    if (!SymbolTable.class.isAssignableFrom(thisSyms.getClass()) || !SymbolTable.class.isAssignableFrom(thatSyms.getClass())) {
+      return false;
+    }
+
+    SymbolTable thisS = (SymbolTable) thisSyms;
+    SymbolTable thatS = (SymbolTable) thatSyms;
+
+    if (thisS.size() != thatS.size()) {
+      return false;
+    }
+    for (ObjectIntCursor<String> cursor : thisS) {
+      if (thatS.contains(cursor.key)) {
+        if (thatS.get(cursor.key) == cursor.value) {
+          continue;
+        }
+      }
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Returns an "effective" copy of the given symbol table which might be a unioned symbol
+   * table that is just a mutable filter on top of a backing table which is treated as
+   * immutable
+   * @param syms
+   * @return
+   */
+  public static WriteableSymbolTable symbolTableEffectiveCopy(SymbolTable syms) {
+    if (syms instanceof ImmutableSymbolTable) {
+      return new UnionSymbolTable(syms);
+    }
+    if (syms instanceof UnionSymbolTable) {
+      return UnionSymbolTable.copyFrom((UnionSymbolTable) syms);
+    }
+    // maybe consider the size and if its "big" return a union of the mutable version?
+    return new MutableSymbolTable(syms);
   }
 }

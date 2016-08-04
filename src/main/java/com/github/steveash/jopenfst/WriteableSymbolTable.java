@@ -17,11 +17,16 @@
 package com.github.steveash.jopenfst;
 
 /**
+ * contract for a symbol table that can be written into (I know the name choice of Writeable vs
+ * Mutable sucks)
  * @author Steve Ash
  */
-public class ImmutableSymbolTable extends AbstractSymbolTable {
+public interface WriteableSymbolTable extends SymbolTable {
 
-  public ImmutableSymbolTable(SymbolTable table) {
-    super(table);
-  }
+  int getOrAdd(String symbol);
+
+  int addNewUnique(String prefix);
+
+  void put(String symbol, int id);
+
 }

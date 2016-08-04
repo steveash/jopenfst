@@ -42,9 +42,9 @@ public class Project {
    */
   public static void apply(MutableFst fst, ProjectType pType) {
     if (pType == ProjectType.INPUT) {
-      fst.setOutputSymbolsFromThatInput(fst);
+      fst.setOutputSymbolsAsCopyFromThatInput(fst);
     } else if (pType == ProjectType.OUTPUT) {
-      fst.setInputSymbolsFromThatOutput(fst);
+      fst.setInputSymbolsAsCopyFromThatOutput(fst);
     }
 
     int numStates = fst.getStateCount();

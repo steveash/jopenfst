@@ -27,6 +27,7 @@ import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Connect operation.
@@ -39,11 +40,11 @@ public class Connect {
    * Calculates the coaccessible states of an fst
    */
   private static void calcCoAccessible(MutableFst fst, MutableState state,
-                                       ArrayList<ArrayList<MutableState>> paths,
-                                       ArrayList<MutableState> coaccessible) {
+                                       List<? extends List<MutableState>> paths,
+                                       List<MutableState> coaccessible) {
     // hold the coaccessible added in this loop
     ArrayList<MutableState> newCoAccessibles = new ArrayList<>();
-    for (ArrayList<MutableState> path : paths) {
+    for (List<MutableState> path : paths) {
       int index = path.lastIndexOf(state);
       if (index != -1) {
         if (state.getFinalWeight() != fst.getSemiring().zero()

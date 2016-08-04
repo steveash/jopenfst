@@ -20,6 +20,7 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
+import com.github.steveash.jopenfst.utils.FstUtils;
 
 import java.util.Iterator;
 
@@ -28,6 +29,13 @@ import java.util.Iterator;
  */
 public abstract class AbstractSymbolTable implements SymbolTable {
 
+  public static int maxIdIn(SymbolTable table) {
+    int max = 0;
+    for (ObjectIntCursor<String> cursor : table) {
+      max = Math.max(max, cursor.value);
+    }
+    return max;
+  }
 
   protected final ObjectIntOpenHashMap<String> symbolToId;
   protected final IntObjectOpenHashMap<String> idToSymbol;
@@ -40,6 +48,11 @@ public abstract class AbstractSymbolTable implements SymbolTable {
       }
       return maybe;
     }
+
+    @Override
+    public boolean containsKey(int id) {
+      return idToSymbol.containsKey(id);
+    }
   };
 
   protected AbstractSymbolTable() {
@@ -47,10 +60,14 @@ public abstract class AbstractSymbolTable implements SymbolTable {
     this.idToSymbol = new IntObjectOpenHashMap<>();
   }
 
-  protected AbstractSymbolTable(ObjectIntOpenHashMap<String> copyFromToId,
-                             IntObjectOpenHashMap<String> copyFromToString) {
-    this.symbolToId = new ObjectIntOpenHashMap<>(copyFromToId);
-    this.idToSymbol = new IntObjectOpenHashMap<>(copyFromToString);
+  protected AbstractSymbolTable(SymbolTable copyFrom) {
+
+    this.symbolToId = new ObjectIntOpenHashMap<>(copyFrom.size());
+    this.idToSymbol = new IntObjectOpenHashMap<>(copyFrom.size());
+    for (ObjectIntCursor<String> cursor : copyFrom) {
+      symbolToId.put(cursor.key, cursor.value);
+      idToSymbol.put(cursor.value, cursor.key);
+    }
   }
 
   @Override
@@ -81,45 +98,25 @@ public abstract class AbstractSymbolTable implements SymbolTable {
   }
 
   @Override
+  public boolean contains(String symbol) {
+    return symbolToId.containsKey(symbol);
+  }
+
+  @Override
   public InvertedSymbolTable invert() {
     return inverted;
   }
 
   @Override
-  public String[] copyAsArray() {
-    int maxId = -1;
-    Iterator<IntCursor> iter1 = idToSymbol.keys().iterator();
-    while (iter1.hasNext()) {
-      maxId = Math.max(maxId, iter1.next().value);
-    }
-
-    String[] vals = new String[maxId + 1];
-    Iterator<ObjectIntCursor<String>> iter = symbolToId.iterator();
-    while (iter.hasNext()) {
-      ObjectIntCursor<String> cursor = iter.next();
-      vals[cursor.value] = cursor.key;
-    }
-    return vals;
-  }
-
-  @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || !AbstractSymbolTable.class.isAssignableFrom(o.getClass())) {
-      return false;
-    }
-
-    AbstractSymbolTable that = (AbstractSymbolTable) o;
-
-    return symbolToId.equals(that.symbolToId);
+    return FstUtils.symbolTableEquals(this, o);
 
   }
+
+  // no hash code because these shouldn't ever be maps
 
   @Override
   public int hashCode() {
-    int result = 31 * symbolToId.hashCode();
-    return result;
+    throw new IllegalStateException();
   }
 }

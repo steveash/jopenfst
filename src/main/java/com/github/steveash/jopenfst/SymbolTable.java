@@ -35,9 +35,9 @@ public interface SymbolTable extends Iterable<ObjectIntCursor<String>> {
 
   int get(String symbol);
 
-  InvertedSymbolTable invert();
+  boolean contains(String symbol);
 
-  String[] copyAsArray();
+  InvertedSymbolTable invert();
 
   interface InvertedSymbolTable {
 
@@ -45,5 +45,9 @@ public interface SymbolTable extends Iterable<ObjectIntCursor<String>> {
      * Looks up the key for this id and throws an exception if it cant find it
      */
     String keyForId(int id);
+
+    boolean containsKey(int id);
   }
+
+
 }

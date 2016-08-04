@@ -113,10 +113,8 @@ public class NShortestPaths {
     fst.throwIfInvalid();
     Semiring semiring = fst.getSemiring();
     double[] d = shortestDistance(fst);
-    MutableFst res = new MutableFst(semiring);
-    res.setInputSymbolsFrom(fst);
-    res.setOutputSymbolsFrom(fst);
 
+    MutableFst res = MutableFst.emptyWithCopyOfSymbols(fst);
     MutableFst copy = ExtendFinal.apply(fst);
 
     int[] r = new int[copy.getStateCount()];

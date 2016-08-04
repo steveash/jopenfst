@@ -109,9 +109,7 @@ public class Determinize {
 
     // initialize the queue and new fst
     Semiring semiring = fst.getSemiring();
-    MutableFst res = new MutableFst(semiring);
-    res.setInputSymbolsFrom(fst);
-    res.setOutputSymbolsFrom(fst);
+    MutableFst res = MutableFst.emptyWithCopyOfSymbols(fst);
 
     // stores the queue (item in index 0 is next)
     // indexes here always refer to the input fst
