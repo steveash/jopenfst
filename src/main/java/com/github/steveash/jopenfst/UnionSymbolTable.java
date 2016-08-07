@@ -103,6 +103,14 @@ public class UnionSymbolTable implements WriteableSymbolTable {
   }
 
   @Override
+  public Iterable<String> symbols() {
+    if (filter == null) {
+      return backing.symbols();
+    }
+    return Iterables.concat(backing.symbols(), filter.symbols());
+  }
+
+  @Override
   public int get(String symbol) {
     if (filter != null) {
       try {

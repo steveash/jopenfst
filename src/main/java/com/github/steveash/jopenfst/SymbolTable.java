@@ -33,6 +33,8 @@ public interface SymbolTable extends Iterable<ObjectIntCursor<String>> {
 
   Iterable<IntCursor> indexes();
 
+  Iterable<String> symbols();
+
   int get(String symbol);
 
   boolean contains(String symbol);

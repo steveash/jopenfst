@@ -76,7 +76,7 @@ public class RemoveEpsilon {
     State s = state;
 
     double pathWeight;
-    int numArcs = s.getNumArcs();
+    int numArcs = s.getArcCount();
     for (int j = 0; j < numArcs; j++) {
       Arc a = s.getArc(j);
       if ((a.getIlabel() == 0) && (a.getOlabel() == 0)) {
@@ -146,7 +146,7 @@ public class RemoveEpsilon {
       State s = fst.getState(i);
       // Add non-epsilon arcs
       MutableState newState = oldToNewStateMap[s.getId()];
-      int numArcs = s.getNumArcs();
+      int numArcs = s.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         Arc a = s.getArc(j);
         if ((a.getIlabel() != 0) || (a.getOlabel() != 0)) {
@@ -176,7 +176,7 @@ public class RemoveEpsilon {
                                            semiring.times(getPathWeight(oldState, s1, cl),
                                                           s1.getFinalWeight())));
           }
-          int numArcs = s1.getNumArcs();
+          int numArcs = s1.getArcCount();
           for (int j = 0; j < numArcs; j++) {
             Arc a = s1.getArc(j);
             if ((a.getIlabel() != 0) || (a.getOlabel() != 0)) {

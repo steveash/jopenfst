@@ -176,7 +176,7 @@ public class FstInputOutput {
     HashMap<State, Integer> stateMap = new HashMap<>(fst.getStateCount());
     for (int i = 0; i < fst.getStateCount(); i++) {
       State s = fst.getState(i);
-      out.writeInt(s.getNumArcs());
+      out.writeInt(s.getArcCount());
       out.writeDouble(s.getFinalWeight());
       out.writeInt(s.getId());
       stateMap.put(s, i);
@@ -185,7 +185,7 @@ public class FstInputOutput {
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State s = fst.getState(i);
-      int numArcs = s.getNumArcs();
+      int numArcs = s.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         Arc a = s.getArc(j);
         out.writeInt(a.getIlabel());

@@ -74,7 +74,7 @@ public class Determinize {
     for (IndexWeight p : pa) {
       State s = fst.getState(p.getIndex());
 
-      int numArcs = s.getNumArcs();
+      int numArcs = s.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         Arc arc = s.getArc(j);
         if (!res.contains(arc.getIlabel())) {
@@ -139,7 +139,7 @@ public class Determinize {
         for (IndexWeight ps : p) {
           State old = fst.getState(ps.getIndex());
           double u = ps.getWeight();
-          int numArcs = old.getNumArcs();
+          int numArcs = old.getArcCount();
           for (int j = 0; j < numArcs; j++) {
             Arc arc = old.getArc(j);
             if (label == arc.getIlabel()) {
@@ -156,7 +156,7 @@ public class Determinize {
           State old = fst.getState(ps.getIndex());
           double u = ps.getWeight();
           double wnewRevert = semiring.divide(semiring.one(), wnew);
-          int numArcs = old.getNumArcs();
+          int numArcs = old.getArcCount();
           for (int j = 0; j < numArcs; j++) {
             Arc arc = old.getArc(j);
             if (label == arc.getIlabel()) {

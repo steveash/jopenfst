@@ -108,7 +108,7 @@ public class Convert {
       numStates = fst.getStateCount();
       for (int i = 0; i < numStates; i++) {
         State s = fst.getState(i);
-        int numArcs = s.getNumArcs();
+        int numArcs = s.getArcCount();
         for (int j = 0; j < numArcs; j++) {
           Arc arc = s.getArc(j);
           String isym = inputIds.keyForId(arc.getIlabel());

@@ -97,8 +97,8 @@ public class Compose {
       s1 = fst1.getState(p.getLeft());
       s2 = fst2.getState(p.getRight());
       s = res.getState(stateMap.get(p));
-      int numArcs1 = s1.getNumArcs();
-      int numArcs2 = s2.getNumArcs();
+      int numArcs1 = s1.getArcCount();
+      int numArcs2 = s2.getArcCount();
       for (int i = 0; i < numArcs1; i++) {
         Arc a1 = s1.getArc(i);
         for (int j = 0; j < numArcs2; j++) {
@@ -243,7 +243,7 @@ public class Compose {
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       MutableState s = fst.getState(i);
-      int numArcs = s.getNumArcs();
+      int numArcs = s.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         MutableArc a = s.getArc(j);
         if ((label == OUTPUT) && (a.getOlabel() == 0)) {

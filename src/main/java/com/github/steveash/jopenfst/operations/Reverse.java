@@ -71,7 +71,7 @@ public class Reverse {
     for (int i = 0; i < numStates; i++) {
       State olds = fst.getState(i);
       MutableState news = stateMap[olds.getId()];
-      int numArcs = olds.getNumArcs();
+      int numArcs = olds.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         Arc olda = olds.getArc(j);
         MutableState next = stateMap[olda.getNextState().getId()];

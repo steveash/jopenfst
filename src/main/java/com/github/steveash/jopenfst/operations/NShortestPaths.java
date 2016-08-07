@@ -80,7 +80,7 @@ public class NShortestPaths {
       State q = stateMap[queue.remove(0)];
       double rnew = r[q.getId()];
       r[q.getId()] = semiring.zero();
-      int numArcs = q.getNumArcs();
+      int numArcs = q.getArcCount();
       for (int i = 0; i < numArcs; i++) {
         Arc a = q.getArc(i);
         State nextState = a.getNextState();
@@ -148,7 +148,7 @@ public class NShortestPaths {
         // add the incoming arc from previous to current
         MutableState previousStateNew = res.getState(stateMap.get(prevEntry));
         State previousOldState = copy.getState(prevEntry.getIndex());
-        int numArcs = previousOldState.getNumArcs();
+        int numArcs = previousOldState.getArcCount();
         for (int j = 0; j < numArcs; j++) {
           Arc a = previousOldState.getArc(j);
           if (a.getNextState().getId() == prevOld.getId()) {
@@ -165,7 +165,7 @@ public class NShortestPaths {
       }
 
       if (r[stateIndex] <= n) {
-        int numArcs = prevOld.getNumArcs();
+        int numArcs = prevOld.getArcCount();
         for (int j = 0; j < numArcs; j++) {
           Arc a = prevOld.getArc(j);
           double cnew = semiring.times(c, a.getWeight());

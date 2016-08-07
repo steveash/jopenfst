@@ -60,7 +60,7 @@ public class ImmutableState implements State {
   }
 
   @Override
-  public int getNumArcs() {
+  public int getArcCount() {
     return arcs.size();
   }
 

@@ -16,9 +16,13 @@
 
 package com.github.steveash.jopenfst;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.utils.FstUtils;
 
@@ -28,6 +32,14 @@ import java.util.Iterator;
  * @author Steve Ash
  */
 public abstract class AbstractSymbolTable implements SymbolTable {
+
+  private final Function<ObjectCursor<String>, String> keyFromContainer =
+      new Function<ObjectCursor<String>, String>() {
+        @Override
+        public String apply(ObjectCursor<String> input) {
+          return input.value;
+        }
+      };
 
   public static int maxIdIn(SymbolTable table) {
     int max = 0;
@@ -83,6 +95,10 @@ public abstract class AbstractSymbolTable implements SymbolTable {
   @Override
   public Iterable<IntCursor> indexes() {
     return idToSymbol.keys();
+  }
+
+  public Iterable<String> symbols() {
+    return Iterables.transform(symbolToId.keys(), keyFromContainer);
   }
 
   /**

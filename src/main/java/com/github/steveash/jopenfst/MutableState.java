@@ -38,7 +38,7 @@ public class MutableState implements State {
   protected int id = -1;
 
   // Final weight
-  private double fnlWeight;
+  private double fnlWeight = Double.NaN;
 
   // Outgoing arcs
   private final ArrayList<MutableArc> arcs;
@@ -110,7 +110,7 @@ public class MutableState implements State {
    * Get the number of outgoing arcs
    */
   @Override
-  public int getNumArcs() {
+  public int getArcCount() {
     return this.arcs.size();
   }
 

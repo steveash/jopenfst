@@ -51,7 +51,7 @@ public class Project {
     for (int i = 0; i < numStates; i++) {
       MutableState s = fst.getState(i);
       // Immutable fsts hold an additional (null) arc
-      int numArcs = s.getNumArcs();
+      int numArcs = s.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         MutableArc a = s.getArc(j);
         if (pType == ProjectType.INPUT) {

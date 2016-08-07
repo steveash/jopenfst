@@ -55,7 +55,7 @@ public class MutableFst implements Fst {
     // build up states
     for (int i = 0; i < fst.getStateCount(); i++) {
       State source = fst.getState(i);
-      MutableState target = new MutableState(source.getNumArcs());
+      MutableState target = new MutableState(source.getArcCount());
       target.setFinalWeight(source.getFinalWeight());
       copy.setState(i, target);
     }
@@ -63,7 +63,7 @@ public class MutableFst implements Fst {
     for (int i = 0; i < fst.getStateCount(); i++) {
       State source = fst.getState(i);
       MutableState target = copy.getState(i);
-      for (int j = 0; j < source.getNumArcs(); j++) {
+      for (int j = 0; j < source.getArcCount(); j++) {
         Arc sarc = source.getArc(j);
         MutableState nextTargetState = copy.getState(sarc.getNextState().getId());
         MutableArc tarc = new MutableArc(sarc.getIlabel(), sarc.getOlabel(), sarc.getWeight(), nextTargetState);
@@ -388,7 +388,7 @@ public class MutableFst implements Fst {
         outputSymbols).append(", semiring=").append(semiring).append(")\n");
     for (State s : states) {
       sb.append("  ").append(s).append("\n");
-      int numArcs = s.getNumArcs();
+      int numArcs = s.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         Arc a = s.getArc(j);
         sb.append("    ").append(a).append("\n");
@@ -426,7 +426,7 @@ public class MutableFst implements Fst {
       MutableState s1 = states.get(i);
 
       toDelete = new ArrayList<>();
-      int numArcs = s1.getNumArcs();
+      int numArcs = s1.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         Arc a = s1.getArc(j);
         if (a.getNextState().equals(state)) {

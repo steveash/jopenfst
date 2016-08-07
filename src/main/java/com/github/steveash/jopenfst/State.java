@@ -28,7 +28,7 @@ public interface State {
 
   int getId();
 
-  int getNumArcs();
+  int getArcCount();
 
   Arc getArc(int index);
 

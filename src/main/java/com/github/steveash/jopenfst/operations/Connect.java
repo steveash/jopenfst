@@ -91,9 +91,9 @@ public class Connect {
 
     ArrayList<Arc> currentExploredArcs = exploredArcs[start.getId()];
     paths.get(lastPathIndex).add(start);
-    if (start.getNumArcs() != 0) {
+    if (start.getArcCount() != 0) {
       int arcCount = 0;
-      int numArcs = start.getNumArcs();
+      int numArcs = start.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         MutableArc arc = start.getArc(j);
         if ((currentExploredArcs == null)
