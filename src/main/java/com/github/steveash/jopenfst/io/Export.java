@@ -48,7 +48,7 @@ public class Export {
       System.exit(1);
     }
 
-    MutableFst fst = FstInputOutput.loadModel(args[0]);
+    MutableFst fst = FstInputOutput.readFstFromBinaryResource(args[0]);
 
     // Serialize the java fst model to disk
     System.out.println("Saving as openfst text model...");

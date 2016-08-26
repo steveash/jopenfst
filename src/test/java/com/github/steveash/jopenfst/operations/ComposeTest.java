@@ -49,5 +49,7 @@ public class ComposeTest {
     Fst fstComposed = Compose.compose(fstA, fstB, new TropicalSemiring());
 
     assertTrue(FstUtils.fstEquals(composed, fstComposed, 0.00001));
+    // TODO fix this test -- i think now that its doing the right thing perhaps that composed
+    // fst is not correct anymore (specifically take a look at the symbol tables with the unique'd epses
   }
 }

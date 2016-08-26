@@ -51,15 +51,15 @@ public class Reverse {
     Semiring semiring = fst.getSemiring();
 
     MutableFst res = new MutableFst(fst.getStateCount(), semiring);
-    res.setInputSymbolsAsCopyFromThatOutput(fst);
-    res.setOutputSymbolsAsCopyFromThatInput(fst);
+    res.setInputSymbolsAsCopy(fst.getInputSymbols());
+    res.setOutputSymbolsAsCopy(fst.getOutputSymbols());
 
     MutableState[] stateMap = new MutableState[fst.getStateCount()];
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       State is = fst.getState(i);
-      MutableState s = new MutableState(semiring.zero());
-      res.addState(s);
+      MutableState s = res.newState();
+      s.setFinalWeight(semiring.zero());
       stateMap[is.getId()] = s;
       if (semiring.isNotZero(is.getFinalWeight())) {
         res.setStart(s);

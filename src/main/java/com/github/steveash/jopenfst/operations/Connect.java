@@ -47,8 +47,7 @@ public class Connect {
     for (List<MutableState> path : paths) {
       int index = path.lastIndexOf(state);
       if (index != -1) {
-        if (state.getFinalWeight() != fst.getSemiring().zero()
-            || coaccessible.contains(state)) {
+        if (fst.getSemiring().isNotZero(state.getFinalWeight()) || coaccessible.contains(state)) {
           for (int j = index; j > -1; j--) {
             if (!coaccessible.contains(path.get(j))) {
               newCoAccessibles.add(path.get(j));
@@ -150,7 +149,7 @@ public class Connect {
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       MutableState s = fst.getState(i);
-      if (s.getFinalWeight() != fst.getSemiring().zero()) {
+      if (fst.getSemiring().isNotZero(s.getFinalWeight())) {
         calcCoAccessible(fst, s, paths, coaccessible);
       }
     }

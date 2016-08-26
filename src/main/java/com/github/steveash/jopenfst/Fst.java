@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 public interface Fst {
 
   String EPS = "<eps>";
-  int EPS_INDEX = 0;
 
   State getStartState();
 

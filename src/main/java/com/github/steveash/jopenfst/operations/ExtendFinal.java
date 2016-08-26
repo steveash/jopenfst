@@ -55,7 +55,7 @@ public class ExtendFinal {
     int numStates = copy.getStateCount();
     for (int i = 0; i < numStates; i++) {
       MutableState s = copy.getState(i);
-      if (s.getFinalWeight() != semiring.zero()) {
+      if (semiring.isNotZero(s.getFinalWeight())) {
         fStates.add(s);
       }
     }
@@ -63,9 +63,11 @@ public class ExtendFinal {
     // Add a new single final
     MutableState newFinal = new MutableState(semiring.one());
     copy.addState(newFinal);
+    int epsILabel = copy.getInputSymbols().get(Fst.EPS);
+    int epsOLabel = copy.getOutputSymbols().get(Fst.EPS);
     for (MutableState s : fStates) {
       // add epsilon transition from the old final to the new one
-      s.addArc(new MutableArc(Fst.EPS_INDEX, Fst.EPS_INDEX, s.getFinalWeight(), newFinal));
+      s.addArc(new MutableArc(epsILabel, epsOLabel, s.getFinalWeight(), newFinal));
       // set old state's weight to zero
       s.setFinalWeight(semiring.zero());
     }

@@ -76,7 +76,7 @@ public class NShortestPaths {
     d[reversed.getStartState().getId()] = semiring.one();
     r[reversed.getStartState().getId()] = semiring.one();
 
-    while (queue.size() > 0) {
+    while (!queue.isEmpty()) {
       State q = stateMap[queue.remove(0)];
       double rnew = r[q.getId()];
       r[q.getId()] = semiring.zero();
@@ -132,7 +132,7 @@ public class NShortestPaths {
     queue.add(first);
     previous.put(first, null);
 
-    while (queue.size() > 0) {
+    while (!queue.isEmpty()) {
       IndexWeight pair = getLess(queue, d, semiring);
       State prevOld = copy.getState(pair.getIndex());
       double c = pair.getWeight();

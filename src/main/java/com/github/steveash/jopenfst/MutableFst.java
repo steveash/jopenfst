@@ -19,8 +19,8 @@ package com.github.steveash.jopenfst;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import com.github.steveash.jopenfst.semiring.LogSemiring;
 import com.github.steveash.jopenfst.semiring.Semiring;
+import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 import com.github.steveash.jopenfst.utils.FstUtils;
 
 import java.io.File;
@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 
 import static com.github.steveash.jopenfst.utils.FstUtils.symbolTableEffectiveCopy;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * A mutable finite state transducer implementation.
@@ -87,7 +88,7 @@ public class MutableFst implements Fst {
   }
 
   private static Semiring makeDefaultRing() {
-    return new LogSemiring();
+    return new TropicalSemiring();
   }
 
   /**
@@ -152,8 +153,21 @@ public class MutableFst implements Fst {
     this.stateSymbols = stateSymbolsToOwn;
   }
 
+  /**
+   * Indicates that this FST will be using state symbols
+   */
   public void useStateSymbols() {
+    Preconditions.checkState(this.states.isEmpty(), "cannot switch to using state symbols after states are constructed");
     this.stateSymbols = new MutableSymbolTable();
+  }
+
+  /**
+   * Indicates that this FST will not be using state symbols; you might do this after constructing
+   * a complicated FST but before freezing it to reduce runtime/serialization space if you dont
+   * need the state symbols for runtime; note that if you later call useStateSymbols
+   */
+  public void dropStateSymbols() {
+    this.stateSymbols = null;
   }
 
   /**
@@ -180,10 +194,17 @@ public class MutableFst implements Fst {
   public MutableState setStart(MutableState start) {
     checkArgument(start.getId() >= 0, "must set id before setting start");
     throwIfSymbolTableMissingId(start.getId());
+    correctStateWeight(start);
     this.start = start;
     return start;
   }
 
+  private void correctStateWeight(MutableState state) {
+    checkState(semiring != null, "semiring not initialized before adding states");
+    if (Double.isNaN(state.getFinalWeight())) {
+      state.setFinalWeight(semiring.zero());
+    }
+  }
 
   public MutableState newStartState() {
     return newStartState(null);
@@ -235,6 +256,7 @@ public class MutableFst implements Fst {
     } else {
       Preconditions.checkState(newStateSymbol == null, "cant pass state name if not using symbol table");
     }
+    correctStateWeight(state);
     return state;
   }
 
@@ -251,6 +273,7 @@ public class MutableFst implements Fst {
     }
     Preconditions.checkState(this.states.get(id) == null, "cant write two states with ", id);
     this.states.set(id, state);
+    correctStateWeight(state);
     return state;
   }
 
@@ -378,7 +401,7 @@ public class MutableFst implements Fst {
 
   @Deprecated // just use the text version; it will be more forward compatible
   public void saveModel(File file) throws IOException {
-    FstInputOutput.saveModel(this, file);
+    FstInputOutput.writeFstToBinaryFile(this, file);
   }
 
   @Override

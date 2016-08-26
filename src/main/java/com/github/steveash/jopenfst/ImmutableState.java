@@ -70,7 +70,7 @@ public class ImmutableState implements State {
   }
 
   @Override
-  public List<? extends Arc> getArcs() {
+  public List<ImmutableArc> getArcs() {
     return arcs;
   }
 

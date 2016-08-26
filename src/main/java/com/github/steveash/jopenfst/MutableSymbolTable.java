@@ -78,7 +78,7 @@ public class MutableSymbolTable extends AbstractSymbolTable implements Writeable
   @Override
   public int addNewUnique(String prefix) {
     int thisId = nextId;
-    String symbol = prefix + "$$_" + thisId;
+    String symbol = "<" + prefix + "$$_" + thisId + ">";
     putMappingOrThrow(symbol, thisId);
     nextId += 1;
     return thisId;

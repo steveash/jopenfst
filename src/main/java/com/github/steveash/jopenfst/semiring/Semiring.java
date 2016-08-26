@@ -63,11 +63,11 @@ public abstract class Semiring implements Serializable {
   public abstract boolean isMember(double w);
 
   public boolean isZero(double candidate) {
-    return candidate == zero();
+    return Double.isNaN(candidate) || candidate == zero();
   }
 
   public boolean isNotZero(double candidate) {
-    return candidate != zero();
+    return !isZero(candidate);
   }
 
   /*

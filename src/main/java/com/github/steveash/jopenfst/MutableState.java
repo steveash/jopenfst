@@ -136,7 +136,7 @@ public class MutableState implements State {
 
 
   @Override
-  public List<? extends Arc> getArcs() {
+  public List<MutableArc> getArcs() {
     return this.arcs;
   }
 

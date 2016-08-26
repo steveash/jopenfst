@@ -46,7 +46,7 @@ public class ImportTest {
     tempFile.deleteOnExit();
     fst1.saveModel(tempFile);
 
-    MutableFst fst2 = FstInputOutput.loadModel(tempFile);
+    MutableFst fst2 = FstInputOutput.readFstFromBinaryFile(tempFile);
 
     assertTrue(fst1.equals(fst2));
   }

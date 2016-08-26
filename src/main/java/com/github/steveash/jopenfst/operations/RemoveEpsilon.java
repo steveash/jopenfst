@@ -72,16 +72,16 @@ public class RemoveEpsilon {
    * Calculate the epsilon closure
    */
   private static void calcClosure(Fst fst, State state,
-                                  HashMap<Integer, Double>[] cl, Semiring semiring) {
+                                  HashMap<Integer, Double>[] cl, Semiring semiring, int iEps, int oEps) {
     State s = state;
 
     double pathWeight;
     int numArcs = s.getArcCount();
     for (int j = 0; j < numArcs; j++) {
       Arc a = s.getArc(j);
-      if ((a.getIlabel() == 0) && (a.getOlabel() == 0)) {
+      if ((a.getIlabel() == iEps) && (a.getOlabel() == oEps)) {
         if (cl[a.getNextState().getId()] == null) {
-          calcClosure(fst, a.getNextState(), cl, semiring);
+          calcClosure(fst, a.getNextState(), cl, semiring, iEps, oEps);
         }
         if (cl[a.getNextState().getId()] != null) {
           for (Integer pathFinalStateIndex : cl[a.getNextState().getId()].keySet()) {
@@ -123,6 +123,8 @@ public class RemoveEpsilon {
 
     Semiring semiring = fst.getSemiring();
     MutableFst res = MutableFst.emptyWithCopyOfSymbols(fst);
+    int iEps = fst.getInputSymbols().get(Fst.EPS);
+    int oEps = fst.getOutputSymbols().get(Fst.EPS);
 
     @SuppressWarnings("unchecked")
     HashMap<Integer, Double>[] cl = new HashMap[fst.getStateCount()];
@@ -149,7 +151,7 @@ public class RemoveEpsilon {
       int numArcs = s.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         Arc a = s.getArc(j);
-        if ((a.getIlabel() != 0) || (a.getOlabel() != 0)) {
+        if ((a.getIlabel() != iEps) || (a.getOlabel() != oEps)) {
           newState.addArc(new MutableArc(a.getIlabel(), a.getOlabel(), a
               .getWeight(), oldToNewStateMap[a.getNextState()
               .getId()]));
@@ -158,7 +160,7 @@ public class RemoveEpsilon {
 
       // Compute e-Closure
       if (cl[s.getId()] == null) {
-        calcClosure(fst, s, cl, semiring);
+        calcClosure(fst, s, cl, semiring, iEps, oEps);
       }
     }
 
@@ -171,7 +173,7 @@ public class RemoveEpsilon {
         for (Integer pathFinalStateIndex : cl[oldState.getId()].keySet()) {
 
           State s1 = fst.getState(pathFinalStateIndex);
-          if (s1.getFinalWeight() != semiring.zero()) {
+          if (semiring.isNotZero(s1.getFinalWeight())) {
             s.setFinalWeight(semiring.plus(s.getFinalWeight(),
                                            semiring.times(getPathWeight(oldState, s1, cl),
                                                           s1.getFinalWeight())));
@@ -179,7 +181,7 @@ public class RemoveEpsilon {
           int numArcs = s1.getArcCount();
           for (int j = 0; j < numArcs; j++) {
             Arc a = s1.getArc(j);
-            if ((a.getIlabel() != 0) || (a.getOlabel() != 0)) {
+            if ((a.getIlabel() != iEps) || (a.getOlabel() != oEps)) {
               MutableArc newArc = new MutableArc(a.getIlabel(), a.getOlabel(),
                                           semiring.times(a.getWeight(),
                                                   getPathWeight(oldState, s1, cl)),

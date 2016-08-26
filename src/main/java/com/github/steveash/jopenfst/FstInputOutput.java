@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Steve Ash
+ * Copyright 2016 Steve Ash
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,12 +26,15 @@ import com.github.steveash.jopenfst.semiring.Semiring;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.ObjectInput;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import java.io.ObjectStreamClass;
+import java.io.PushbackInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import static com.google.common.io.Resources.asByteSource;
 import static com.google.common.io.Resources.getResource;
@@ -43,13 +46,16 @@ import static com.google.common.io.Resources.getResource;
  */
 public class FstInputOutput {
 
+  private static final int FIRST_VERSION = 42;
+  private static final int CURRENT_VERSION = 42;
+
   /**
-   * Deserializes a symbol map from an ObjectInputStream
+   * Deserializes a symbol map from an java.io.ObjectInput
    *
-   * @param in the ObjectInputStream. It should be already be initialized by the caller.
+   * @param in the java.io.ObjectInput. It should be already be initialized by the caller.
    * @return the deserialized symbol map
    */
-  public static MutableSymbolTable readStringMap(ObjectInputStream in)
+  public static MutableSymbolTable readStringMap(ObjectInput in)
       throws IOException, ClassNotFoundException {
 
     int mapSize = in.readInt();
@@ -63,12 +69,17 @@ public class FstInputOutput {
   }
 
   /**
-   * Deserializes an Fst from an ObjectInputStream
+   * Deserializes an Fst from an ObjectInput
    *
-   * @param in the ObjectInputStream. It should be already be initialized by the caller.
+   * @param in the ObjectInput. It should be already be initialized by the caller.
    */
-  private static MutableFst readFst(ObjectInputStream in) throws IOException,
-                                                                 ClassNotFoundException {
+  public static MutableFst readFstFromBinaryStream(ObjectInput in) throws IOException,
+                                                                          ClassNotFoundException {
+    int version = in.readInt();
+    if (version < FIRST_VERSION && version > CURRENT_VERSION) {
+      throw new IllegalArgumentException("cant read version fst model " + version);
+    }
+
     MutableSymbolTable is = readStringMap(in);
     MutableSymbolTable os = readStringMap(in);
 
@@ -79,7 +90,8 @@ public class FstInputOutput {
     return readFstWithTables(in, is, os, ss);
   }
 
-  private static MutableFst readFstWithTables(ObjectInputStream in, MutableSymbolTable is, MutableSymbolTable os, MutableSymbolTable ss)
+  private static MutableFst readFstWithTables(ObjectInput in, MutableSymbolTable is, MutableSymbolTable os,
+                                              MutableSymbolTable ss)
       throws IOException, ClassNotFoundException {
     int startid = in.readInt();
     Semiring semiring = (Semiring) in.readObject();
@@ -124,30 +136,40 @@ public class FstInputOutput {
    *
    * @param file the binary model filename
    */
-  public static MutableFst loadModel(File file) {
+  public static MutableFst readFstFromBinaryFile(File file) {
     return loadModelFromSource(Files.asByteSource(file));
   }
 
-  public static MutableFst loadModel(String resourceName) {
+  public static MutableFst readFstFromBinaryResource(String resourceName) {
     ByteSource bs = asByteSource(getResource(resourceName));
     return loadModelFromSource(bs);
   }
 
   private static MutableFst loadModelFromSource(ByteSource bs) {
-    try (ObjectInputStream ois = new ConvertingObjectInputStream(bs.openBufferedStream())) {
-      return readFst(ois);
+    try (PushbackInputStream pis = new PushbackInputStream(bs.openBufferedStream(), 2)) {
+      // gzip or not?
+      ObjectInputStream ois;
+      byte[] signature = new byte[2];
+      int len = pis.read(signature); //read the signature
+      pis.unread(signature, 0, len); //push back the signature to the stream
+      if (signature[0] == (byte) 0x1f && signature[1] == (byte) 0x8b) {
+        ois = new ObjectInputStream(new GZIPInputStream(pis));
+      } else {
+        ois = new ObjectInputStream(pis);
+      }
+      return readFstFromBinaryStream(ois);
     } catch (Exception e) {
       throw Throwables.propagate(e);
     }
   }
 
   /**
-   * Serializes a symbol map to an ObjectOutputStream
+   * Serializes a symbol map to an ObjectOutput
    *
-   * @param out the ObjectOutputStream. It should be already be initialized by the caller.
    * @param map the symbol map to serialize
+   * @param out the ObjectOutput. It should be already be initialized by the caller.
    */
-  private static void writeStringMap(ObjectOutputStream out, SymbolTable map)
+  private static void writeStringMap(SymbolTable map, ObjectOutput out)
       throws IOException {
     out.writeInt(map.size());
     for (ObjectIntCursor<String> cursor : map) {
@@ -157,16 +179,17 @@ public class FstInputOutput {
   }
 
   /**
-   * Serializes the current Fst instance to an ObjectOutputStream
+   * Serializes the current Fst instance to an ObjectOutput
    *
-   * @param out the ObjectOutputStream. It should be already be initialized by the caller.
+   * @param out the ObjectOutput. It should be already be initialized by the caller.
    */
-  private static void writeFst(MutableFst fst, ObjectOutputStream out) throws IOException {
-    writeStringMap(out, fst.getInputSymbols());
-    writeStringMap(out, fst.getOutputSymbols());
+  public static void writeFstToBinaryStream(Fst fst, ObjectOutput out) throws IOException {
+    out.writeInt(CURRENT_VERSION);
+    writeStringMap(fst.getInputSymbols(), out);
+    writeStringMap(fst.getOutputSymbols(), out);
     out.writeBoolean(fst.isUsingStateSymbols()); // whether or not we used a state symbol table
     if (fst.isUsingStateSymbols()) {
-      writeStringMap(out, fst.getStateSymbols());
+      writeStringMap(fst.getStateSymbols(), out);
     }
     out.writeInt(fst.getStartState().getId());
 
@@ -196,29 +219,29 @@ public class FstInputOutput {
     }
   }
 
-  public static void saveModel(MutableFst fst, File file) throws IOException {
+  public static void writeFstToBinaryFile(Fst fst, File file) throws IOException {
     ByteSink bs = Files.asByteSink(file);
-    try (ObjectOutputStream oos = new ObjectOutputStream(bs.openBufferedStream())) {
-      writeFst(fst, oos);
+    try (ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(bs.openBufferedStream()))) {
+      writeFstToBinaryStream(fst, oos);
     }
   }
 
   // shim while i was still using John's serialized "expected" values to test the algorithms
-  private static class ConvertingObjectInputStream extends ObjectInputStream {
-
-    private static final String EDU_CMU_SPHINX_FST = "edu.cmu.sphinx.fst";
-
-    public ConvertingObjectInputStream(InputStream in) throws IOException {
-      super(in);
-    }
-
-    @Override
-    protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-      if (desc.getName().startsWith(EDU_CMU_SPHINX_FST)) {
-        String newClassName = "com.github.steveash.jopenfst" + desc.getName().substring(EDU_CMU_SPHINX_FST.length());
-        return Class.forName(newClassName, false, Thread.currentThread().getContextClassLoader());
-      }
-      return super.resolveClass(desc);
-    }
-  }
+//  private static class ConvertingObjectInputStream extends ObjectInputStream {
+//
+//    private static final String EDU_CMU_SPHINX_FST = "edu.cmu.sphinx.fst";
+//
+//    public ConvertingObjectInputStream(InputStream in) throws IOException {
+//      super(in);
+//    }
+//
+//    @Override
+//    protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+//      if (desc.getName().startsWith(EDU_CMU_SPHINX_FST)) {
+//        String newClassName = "com.github.steveash.jopenfst" + desc.getName().substring(EDU_CMU_SPHINX_FST.length());
+//        return Class.forName(newClassName, false, Thread.currentThread().getContextClassLoader());
+//      }
+//      return super.resolveClass(desc);
+//    }
+//  }
 }
