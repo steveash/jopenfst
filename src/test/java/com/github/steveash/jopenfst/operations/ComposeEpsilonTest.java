@@ -46,4 +46,21 @@ public class ComposeEpsilonTest {
 
     assertTrue(fstC.equals(fstComposed));
   }
+
+  @Test
+  public void shouldComposePrecomputed() throws Exception {
+    MutableFst fstA = Convert.importFst("data/tests/algorithms/composeeps/A",
+                                        new TropicalSemiring());
+    MutableFst fstB = Convert.importFst("data/tests/algorithms/composeeps/B",
+                                        new TropicalSemiring());
+    MutableFst fstC = Convert.importFst(
+        "data/tests/algorithms/composeeps/fstcomposeeps",
+        new TropicalSemiring());
+
+    PrecomputedComposeFst fst22 = Compose.precomputeInner(fstB, TropicalSemiring.INSTANCE);
+    Fst fstComposed = Compose.composeWithPrecomputed(fstA, fst22);
+
+    assertTrue(fstC.equals(fstComposed));
+
+  }
 }

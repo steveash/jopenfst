@@ -20,7 +20,6 @@ import com.google.common.base.Preconditions;
 
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
-import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
@@ -135,8 +134,8 @@ public class RemoveEpsilon {
     for (int i = 0; i < numStates; i++) {
       State s = fst.getState(i);
       // Add non-epsilon arcs
-      MutableState newState = new MutableState(s.getFinalWeight());
-      res.addState(newState);
+      MutableState newState = res.newState();
+      newState.setFinalWeight(s.getFinalWeight());
       oldToNewStateMap[s.getId()] = newState;
       newToOldStateMap[newState.getId()] = s;
       if (newState.getId() == fst.getStartState().getId()) {
@@ -152,9 +151,8 @@ public class RemoveEpsilon {
       for (int j = 0; j < numArcs; j++) {
         Arc a = s.getArc(j);
         if ((a.getIlabel() != iEps) || (a.getOlabel() != oEps)) {
-          newState.addArc(new MutableArc(a.getIlabel(), a.getOlabel(), a
-              .getWeight(), oldToNewStateMap[a.getNextState()
-              .getId()]));
+          MutableState resNextState = oldToNewStateMap[a.getNextState().getId()];
+          res.addArc(newState, a.getIlabel(), a.getOlabel(), resNextState, a.getWeight());
         }
       }
 
@@ -182,11 +180,9 @@ public class RemoveEpsilon {
           for (int j = 0; j < numArcs; j++) {
             Arc a = s1.getArc(j);
             if ((a.getIlabel() != iEps) || (a.getOlabel() != oEps)) {
-              MutableArc newArc = new MutableArc(a.getIlabel(), a.getOlabel(),
-                                          semiring.times(a.getWeight(),
-                                                  getPathWeight(oldState, s1, cl)),
-                                          oldToNewStateMap[a.getNextState().getId()]);
-              s.addArc(newArc);
+              double weight = semiring.times(a.getWeight(), getPathWeight(oldState, s1, cl));
+              MutableState nextState = oldToNewStateMap[a.getNextState().getId()];
+              res.addArc(s, a.getIlabel(), a.getOlabel(), nextState, weight);
             }
           }
         }

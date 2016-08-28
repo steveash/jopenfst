@@ -16,10 +16,12 @@
 
 package com.github.steveash.jopenfst.operations;
 
+import com.google.common.collect.MinMaxPriorityQueue;
+import com.google.common.collect.Ordering;
+
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.IndexWeight;
-import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
@@ -85,8 +87,7 @@ public class NShortestPaths {
         Arc a = q.getArc(i);
         State nextState = a.getNextState();
         double dnext = d[a.getNextState().getId()];
-        double dnextnew = semiring.plus(dnext,
-                                        semiring.times(rnew, a.getWeight()));
+        double dnextnew = semiring.plus(dnext, semiring.times(rnew, a.getWeight()));
         if (dnext != dnextnew) {
           d[a.getNextState().getId()] = dnextnew;
           r[a.getNextState().getId()] = semiring.plus(r[a
@@ -111,8 +112,8 @@ public class NShortestPaths {
    */
   public static MutableFst apply(Fst fst, int n) {
     fst.throwIfInvalid();
-    Semiring semiring = fst.getSemiring();
-    double[] d = shortestDistance(fst);
+    final Semiring semiring = fst.getSemiring();
+    final double[] d = shortestDistance(fst);
 
     MutableFst res = MutableFst.emptyWithCopyOfSymbols(fst);
     MutableFst copy = ExtendFinal.apply(fst);
@@ -122,18 +123,33 @@ public class NShortestPaths {
       r[i] = 0;
     }
 
-    ArrayList<IndexWeight> queue = new ArrayList<>();
+    MinMaxPriorityQueue<IndexWeight> qq = MinMaxPriorityQueue.orderedBy(new Ordering<IndexWeight>() {
+      @Override
+      public int compare(IndexWeight left, IndexWeight right) {
+        double dx = d[left.getIndex()];
+        double dy = d[right.getIndex()];
+        double wx = semiring.times(dx, left.getWeight());
+        double wy = semiring.times(dy, right.getWeight());
+        if (semiring.naturalLess(wx, wy)) {
+          return -1;
+        }
+        if (semiring.naturalLess(wy, wx)) {
+          return +1;
+        }
+        return 0;
+      }
+    }).create();
     HashMap<IndexWeight, IndexWeight> previous = new HashMap<>(copy.getStateCount());
     // source -> res id
     HashMap<IndexWeight, Integer> stateMap = new HashMap<>(copy.getStateCount());
 
     State start = copy.getStartState();
     IndexWeight first = new IndexWeight(start.getId(), semiring.one());
-    queue.add(first);
+    qq.add(first);
     previous.put(first, null);
 
-    while (!queue.isEmpty()) {
-      IndexWeight pair = getLess(queue, d, semiring);
+    while (!qq.isEmpty()) {
+      IndexWeight pair = qq.removeFirst();
       State prevOld = copy.getState(pair.getIndex());
       double c = pair.getWeight();
 
@@ -152,7 +168,7 @@ public class NShortestPaths {
         for (int j = 0; j < numArcs; j++) {
           Arc a = previousOldState.getArc(j);
           if (a.getNextState().getId() == prevOld.getId()) {
-            previousStateNew.addArc(new MutableArc(a.getIlabel(), a.getOlabel(), a.getWeight(), resNext));
+            res.addArc(previousStateNew, a.getIlabel(), a.getOlabel(), resNext, a.getWeight());
           }
         }
       }
@@ -171,7 +187,7 @@ public class NShortestPaths {
           double cnew = semiring.times(c, a.getWeight());
           IndexWeight next = new IndexWeight(a.getNextState().getId(), cnew);
           previous.put(next, pair);
-          queue.add(next);
+          qq.add(next);
         }
       }
     }

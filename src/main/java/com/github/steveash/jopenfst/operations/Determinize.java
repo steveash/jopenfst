@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.IndexWeight;
-import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
@@ -183,7 +182,7 @@ public class Determinize {
 
           queue.add(forQueue);
         }
-        pnew.addArc(new MutableArc(label, label, wnew, stateMapper.get(qnewid)));
+        res.addArc(pnew, label, label, stateMapper.get(qnewid), wnew);
       }
     }
 

@@ -16,12 +16,14 @@
 
 package com.github.steveash.jopenfst.operations;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
+import com.github.steveash.jopenfst.ImmutableFst;
 import com.github.steveash.jopenfst.IndexPair;
 import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
@@ -142,6 +144,38 @@ public class Compose {
     return res;
   }
 
+  public static PrecomputedComposeFst precomputeInner(Fst fst2, Semiring semiring) {
+    fst2.throwIfInvalid();
+    MutableFst mutableFst = MutableFst.copyFrom(fst2);
+    WriteableSymbolTable table = mutableFst.getInputSymbols();
+    int e1index = getOrAddEps(table, true);
+    int e2index = getOrAddEps(table, false);
+    String eps1 = table.invert().keyForId(e1index);
+    String eps2 = table.invert().keyForId(e2index);
+    augment(INPUT, mutableFst, semiring, eps1, eps2);
+    return new PrecomputedComposeFst(eps1, eps2, new ImmutableFst(mutableFst), semiring);
+  }
+
+  public static MutableFst composeWithPrecomputed(MutableFst fst1, PrecomputedComposeFst fst2) {
+    fst1.throwIfInvalid();
+    Semiring semiring = fst2.getSemiring();
+
+    WriteableSymbolTable table = symbolTableEffectiveCopy(fst1.getOutputSymbols());
+    int e1index = getOrAddEps(table, true);
+    int e2index = getOrAddEps(table, false);
+    String eps1 = table.invert().keyForId(e1index);
+    String eps2 = table.invert().keyForId(e2index);
+    Preconditions.checkArgument(eps1.equals(fst2.getEps1()));
+    Preconditions.checkArgument(eps2.equals(fst2.getEps2()));
+
+    MutableFst filter = makeFilter(table, semiring, eps1, eps2);
+    augment(OUTPUT, fst1, semiring, eps1, eps2);
+
+    MutableFst tmp = Compose.compose(fst1, filter, semiring, false);
+    MutableFst res = Compose.compose(tmp, fst2.getFst(), semiring, false);
+    return res;
+  }
+
   /**
    * Computes the composition of two Fsts. The two Fsts are augmented in order to avoid multiple epsilon paths in the
    * resulting Fst
@@ -158,8 +192,8 @@ public class Compose {
 
     WriteableSymbolTable table = symbolTableEffectiveCopy(fst1.getOutputSymbols());
 
-    int e1index = table.addNewUnique("eps1");
-    int e2index = table.addNewUnique("eps2");
+    int e1index = getOrAddEps(table, true);
+    int e2index = getOrAddEps(table, false);
     String eps1 = table.invert().keyForId(e1index);
     String eps2 = table.invert().keyForId(e2index);
     MutableFst filter = makeFilter(table, semiring, eps1, eps2);
@@ -172,6 +206,10 @@ public class Compose {
     // Connect.apply(res);
 
     return res;
+  }
+
+  private static int getOrAddEps(WriteableSymbolTable table, boolean isFirst) {
+    return table.getOrAdd("<$$compose$$eps" + (isFirst ? "1" : "2") + ">");
   }
 
   public static MutableFst composeSimple(Fst fst1, Fst fst2, Semiring semiring) {
@@ -210,13 +248,12 @@ public class Compose {
       if (key.equals(Fst.EPS) || key.equals(eps1) || key.equals(eps2)) {
         continue;
       }
-      s0.addArc(new MutableArc(i, i, semiring.one(), s0));
-      s1.addArc(new MutableArc(i, i, semiring.one(), s0));
-      s2.addArc(new MutableArc(i, i, semiring.one(), s0));
+      filter.addArc(s0, i, i, s0, semiring.one());
+      filter.addArc(s1, i, i, s0, semiring.one());
+      filter.addArc(s2, i, i, s0, semiring.one());
     }
 
     // now we need to augment the input fsts to emit the eps1/eps2 in their I/O labels to compose this
-
 
     return filter;
   }
@@ -224,12 +261,11 @@ public class Compose {
   /**
    * Augments the labels of an Fst in order to use it for composition avoiding multiple epsilon paths in the resulting
    * Fst
+   *
    * @param label constant denoting if the augment should take place on input or output labels For value equal to 0
    *              augment will take place for input labels For value equal to 1 augment will take place for output
    *              labels
    * @param fst   the fst to augment
-   * @param eps1
-   * @param eps2
    */
   private static void augment(AugmentLabels label, MutableFst fst, Semiring semiring, String eps1, String eps2) {
     // label: 0->augment on ilabel
@@ -255,9 +291,9 @@ public class Compose {
         }
       }
       if (label == INPUT) {
-        s.addArc(new MutableArc(e2inputIndex, oEps, semiring.one(), s));
+        fst.addArc(s, e2inputIndex, oEps, s, semiring.one());
       } else if (label == OUTPUT) {
-        s.addArc(new MutableArc(iEps, e1outputIndex, semiring.one(), s));
+        fst.addArc(s, iEps, e1outputIndex, s, semiring.one());
       }
     }
   }

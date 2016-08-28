@@ -16,7 +16,6 @@
 
 package com.github.steveash.jopenfst.operations;
 
-import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
@@ -35,26 +34,21 @@ public class ArcSortTest {
   private MutableFst createOsorted() {
     MutableFst fst = new MutableFst(new TropicalSemiring());
 
-    MutableState s1 = new MutableState(0.f);
-    MutableState s2 = new MutableState(0.f);
-    MutableState s3 = new MutableState(0.f);
+    MutableState s1 = fst.newState(0.f);
+    MutableState s2 = fst.newState(0.f);
+    MutableState s3 = fst.newState(0.f);
 
     // State 0
-    fst.addState(s1);
-    s1.addArc(new MutableArc(4, 1, 0.f, s3));
-    s1.addArc(new MutableArc(5, 2, 0.f, s3));
-    s1.addArc(new MutableArc(2, 3, 0.f, s2));
-    s1.addArc(new MutableArc(1, 4, 0.f, s2));
-    s1.addArc(new MutableArc(3, 5, 0.f, s2));
+    fst.addArc(s1, 4, 1, s3, 0.f);
+    fst.addArc(s1, 5, 2, s3, 0.f);
+    fst.addArc(s1, 2, 3, s2, 0.f);
+    fst.addArc(s1, 1, 4, s2, 0.f);
+    fst.addArc(s1, 3, 5, s2, 0.f);
 
     // State 1
-    fst.addState(s2);
-    s2.addArc(new MutableArc(3, 1, 0.f, s3));
-    s2.addArc(new MutableArc(1, 2, 0.f, s3));
-    s2.addArc(new MutableArc(2, 3, 0.f, s2));
-
-    // State 2 (final)
-    fst.addState(s3);
+    fst.addArc(s2, 3, 1, s3, 0.f);
+    fst.addArc(s2, 1, 2, s3, 0.f);
+    fst.addArc(s2, 2, 3, s2, 0.f);
 
     return fst;
   }
@@ -67,26 +61,21 @@ public class ArcSortTest {
   private MutableFst createIsorted() {
     MutableFst fst = new MutableFst(new TropicalSemiring());
 
-    MutableState s1 = new MutableState(0.f);
-    MutableState s2 = new MutableState(0.f);
-    MutableState s3 = new MutableState(0.f);
+    MutableState s1 = fst.newState(0.f);
+    MutableState s2 = fst.newState(0.f);
+    MutableState s3 = fst.newState(0.f);
 
     // State 0
-    fst.addState(s1);
-    s1.addArc(new MutableArc(1, 4, 0.f, s2));
-    s1.addArc(new MutableArc(2, 3, 0.f, s2));
-    s1.addArc(new MutableArc(3, 5, 0.f, s2));
-    s1.addArc(new MutableArc(4, 1, 0.f, s3));
-    s1.addArc(new MutableArc(5, 2, 0.f, s3));
+    fst.addArc(s1, 1, 4, s2, 0.f);
+    fst.addArc(s1, 2, 3, s2, 0.f);
+    fst.addArc(s1, 3, 5, s2, 0.f);
+    fst.addArc(s1, 4, 1, s3, 0.f);
+    fst.addArc(s1, 5, 2, s3, 0.f);
 
     // State 1
-    fst.addState(s2);
-    s2.addArc(new MutableArc(1, 2, 0.f, s3));
-    s2.addArc(new MutableArc(2, 3, 0.f, s2));
-    s2.addArc(new MutableArc(3, 1, 0.f, s3));
-
-    // State 2 (final)
-    fst.addState(s3);
+    fst.addArc(s2, 1, 2, s3, 0.f);
+    fst.addArc(s2, 2, 3, s2, 0.f);
+    fst.addArc(s2, 3, 1, s3, 0.f);
 
     return fst;
   }
@@ -99,26 +88,21 @@ public class ArcSortTest {
   private MutableFst createUnsorted() {
     MutableFst fst = new MutableFst(new TropicalSemiring());
 
-    MutableState s1 = new MutableState(0.f);
-    MutableState s2 = new MutableState(0.f);
-    MutableState s3 = new MutableState(0.f);
+    MutableState s1 = fst.newState(0.f);
+    MutableState s2 = fst.newState(0.f);
+    MutableState s3 = fst.newState(0.f);
 
     // State 0
-    fst.addState(s1);
-    s1.addArc(new MutableArc(1, 4, 0.f, s2));
-    s1.addArc(new MutableArc(3, 5, 0.f, s2));
-    s1.addArc(new MutableArc(2, 3, 0.f, s2));
-    s1.addArc(new MutableArc(5, 2, 0.f, s3));
-    s1.addArc(new MutableArc(4, 1, 0.f, s3));
+    fst.addArc(s1, 1, 4, s2, 0.f);
+    fst.addArc(s1, 3, 5, s2, 0.f);
+    fst.addArc(s1, 2, 3, s2, 0.f);
+    fst.addArc(s1, 5, 2, s3, 0.f);
+    fst.addArc(s1, 4, 1, s3, 0.f);
 
     // State 1
-    fst.addState(s2);
-    s2.addArc(new MutableArc(2, 3, 0.f, s2));
-    s2.addArc(new MutableArc(3, 1, 0.f, s3));
-    s2.addArc(new MutableArc(1, 2, 0.f, s3));
-
-    // State 2 (final)
-    fst.addState(s3);
+    fst.addArc(s2, 2, 3, s2, 0.f);
+    fst.addArc(s2, 3, 1, s3, 0.f);
+    fst.addArc(s2, 1, 2, s3, 0.f);
 
     return fst;
   }

@@ -16,7 +16,6 @@
 
 package com.github.steveash.jopenfst.operations;
 
-import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
@@ -39,28 +38,22 @@ public class ProjectTest {
     TropicalSemiring ts = new TropicalSemiring();
     MutableFst fst = new MutableFst(ts);
 
-    MutableState s1 = new MutableState(ts.zero());
-    MutableState s2 = new MutableState(ts.zero());
-    MutableState s3 = new MutableState(ts.zero());
-    MutableState s4 = new MutableState(2.f);
+    MutableState s1 = fst.newState(ts.zero());
+    MutableState s2 = fst.newState(ts.zero());
+    MutableState s3 = fst.newState(ts.zero());
+    MutableState s4 = fst.newState(2.f);
 
     // State 0
-    fst.addState(s1);
-    s1.addArc(new MutableArc(1, 5, 1.f, s2));
-    s1.addArc(new MutableArc(2, 4, 3.f, s2));
+    fst.addArc(s1, 1, 5, s2, 1.f);
+    fst.addArc(s1, 2, 4, s2, 3.f);
     fst.setStart(s1);
 
     // State 1
-    fst.addState(s2);
-    s2.addArc(new MutableArc(3, 3, 7.f, s2));
-    s2.addArc(new MutableArc(4, 2, 5.f, s3));
+    fst.addArc(s2, 3, 3, s2, 7.f);
+    fst.addArc(s2, 4, 2, s3, 5.f);
 
     // State 2
-    fst.addState(s3);
-    s3.addArc(new MutableArc(5, 1, 9.f, s4));
-
-    // State 3
-    fst.addState(s4);
+    fst.addArc(s3, 5, 1, s4, 9.f);
 
     return fst;
   }
@@ -73,28 +66,22 @@ public class ProjectTest {
   private MutableFst createPi() {
     TropicalSemiring ts = new TropicalSemiring();
     MutableFst fst = new MutableFst(ts);
-    MutableState s1 = new MutableState(ts.zero());
-    MutableState s2 = new MutableState(ts.zero());
-    MutableState s3 = new MutableState(ts.zero());
-    MutableState s4 = new MutableState(2.f);
+    MutableState s1 = fst.newState(ts.zero());
+    MutableState s2 = fst.newState(ts.zero());
+    MutableState s3 = fst.newState(ts.zero());
+    MutableState s4 = fst.newState(2.f);
 
     // State 0
-    fst.addState(s1);
-    s1.addArc(new MutableArc(1, 1, 1.f, s2));
-    s1.addArc(new MutableArc(2, 2, 3.f, s2));
+    fst.addArc(s1, 1, 1, s2, 1.f);
+    fst.addArc(s1, 2, 2, s2, 3.f);
     fst.setStart(s1);
 
     // State 1
-    fst.addState(s2);
-    s2.addArc(new MutableArc(3, 3, 7.f, s2));
-    s2.addArc(new MutableArc(4, 4, 5.f, s3));
+    fst.addArc(s2, 3, 3, s2, 7.f);
+    fst.addArc(s2, 4, 4, s3, 5.f);
 
     // State 2
-    fst.addState(s3);
-    s3.addArc(new MutableArc(5, 5, 9.f, s4));
-
-    // State 3
-    fst.addState(s4);
+    fst.addArc(s3, 5, 5, s4, 9.f);
 
     return fst;
   }
@@ -108,28 +95,22 @@ public class ProjectTest {
     TropicalSemiring ts = new TropicalSemiring();
     MutableFst fst = new MutableFst(ts);
 
-    MutableState s1 = new MutableState(ts.zero());
-    MutableState s2 = new MutableState(ts.zero());
-    MutableState s3 = new MutableState(ts.zero());
-    MutableState s4 = new MutableState(2.f);
+    MutableState s1 = fst.newState(ts.zero());
+    MutableState s2 = fst.newState(ts.zero());
+    MutableState s3 = fst.newState(ts.zero());
+    MutableState s4 = fst.newState(2.f);
 
     // State 0
-    fst.addState(s1);
-    s1.addArc(new MutableArc(5, 5, 1.f, s2));
-    s1.addArc(new MutableArc(4, 4, 3.f, s2));
+    fst.addArc(s1, 5, 5, s2, 1.f);
+    fst.addArc(s1, 4, 4, s2, 3.f);
     fst.setStart(s1);
 
     // State 1
-    fst.addState(s2);
-    s2.addArc(new MutableArc(3, 3, 7.f, s2));
-    s2.addArc(new MutableArc(2, 2, 5.f, s3));
+    fst.addArc(s2, 3, 3, s2, 7.f);
+    fst.addArc(s2, 2, 2, s3, 5.f);
 
     // State 2
-    fst.addState(s3);
-    s3.addArc(new MutableArc(1, 1, 9.f, s4));
-
-    // State 3
-    fst.addState(s4);
+    fst.addArc(s3, 1, 1, s4, 9.f);
 
     return fst;
   }

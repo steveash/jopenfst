@@ -17,7 +17,6 @@
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Fst;
-import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.semiring.Semiring;
@@ -67,7 +66,7 @@ public class ExtendFinal {
     int epsOLabel = copy.getOutputSymbols().get(Fst.EPS);
     for (MutableState s : fStates) {
       // add epsilon transition from the old final to the new one
-      s.addArc(new MutableArc(epsILabel, epsOLabel, s.getFinalWeight(), newFinal));
+      copy.addArc(s, epsILabel, epsOLabel, newFinal, s.getFinalWeight());
       // set old state's weight to zero
       s.setFinalWeight(semiring.zero());
     }

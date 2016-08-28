@@ -119,12 +119,11 @@ public class FstInputOutput {
     for (int i = 0; i < numStates; i++) {
       MutableState s1 = res.getState(i);
       for (int j = 0; j < s1.initialNumArcs; j++) {
-        MutableArc a = new MutableArc();
-        a.setIlabel(in.readInt());
-        a.setOlabel(in.readInt());
-        a.setWeight(in.readDouble());
-        a.setNextState(res.getState(in.readInt()));
-        s1.addArc(a);
+        int iLabel = in.readInt();
+        int oLabel = in.readInt();
+        double weight = in.readDouble();
+        MutableState state = res.getState(in.readInt());
+        res.addArc(s1, iLabel, oLabel, state, weight);
       }
     }
 

@@ -17,6 +17,7 @@
 package com.github.steveash.jopenfst;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import com.github.steveash.jopenfst.utils.FstUtils;
 
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The fst's mutable state implementation.
@@ -42,6 +44,9 @@ public class MutableState implements State {
 
   // Outgoing arcs
   private final ArrayList<MutableArc> arcs;
+
+  // Incoming arcs (at least states with arcs that are incoming to us)
+  private final Set<MutableState> incomingStates = Sets.newIdentityHashSet();
 
   // initial number of arcs; this is only used during deserialization and should be ignored otherwise
   protected int initialNumArcs = -1;
@@ -115,15 +120,6 @@ public class MutableState implements State {
   }
 
   /**
-   * Add an outgoing arc to the state
-   *
-   * @param arc the arc to add
-   */
-  public void addArc(MutableArc arc) {
-    this.arcs.add(arc);
-  }
-
-  /**
    * Get an arc based on it's index the arcs ArrayList
    *
    * @param index the arc's index
@@ -150,25 +146,30 @@ public class MutableState implements State {
     return "(" + id + ", " + fnlWeight + ")";
   }
 
-  /**
-   * Delete an arc based on its index
-   *
-   * @param index the arc's index
-   * @return the deleted arc
-   */
-  public MutableArc deleteArc(int index) {
+  /* friend methods to let the fst maintain state's state */
+
+  // deletes an arc, should only be called from FST itself so that the invariants can be
+  // maintained
+  MutableArc deleteArc(int index) {
     return this.arcs.remove(index);
   }
 
+  // adds an arc but should only be used by MutableFst
+  void addArc(MutableArc arc) {
+      this.arcs.add(arc);
+    }
 
-  /**
-   * Set an arc at the specified position in the arcs' ArrayList.
-   *
-   * @param index the position to the arcs' array
-   * @param arc   the arc value to set
-   */
-  public void setArc(int index, MutableArc arc) {
-    arcs.set(index, arc);
+  void addIncomingState(MutableState inState) {
+    if (inState == this) return;
+    this.incomingStates.add(inState);
+  }
+
+  void removeIncomingState(MutableState inState) {
+    this.incomingStates.remove(inState);
+  }
+
+  Iterable<MutableState> getIncomingStates() {
+    return this.incomingStates;
   }
 
   @Override

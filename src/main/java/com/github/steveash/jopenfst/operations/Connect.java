@@ -16,18 +16,19 @@
 
 package com.github.steveash.jopenfst.operations;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntOpenHashSet;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
-import com.github.steveash.jopenfst.State;
-import com.github.steveash.jopenfst.semiring.Semiring;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Connect operation.
@@ -40,17 +41,17 @@ public class Connect {
    * Calculates the coaccessible states of an fst
    */
   private static void calcCoAccessible(MutableFst fst, MutableState state,
-                                       List<? extends List<MutableState>> paths,
-                                       List<MutableState> coaccessible) {
+                                       List<IntArrayList> paths,
+                                       IntOpenHashSet coaccessible) {
     // hold the coaccessible added in this loop
     ArrayList<MutableState> newCoAccessibles = new ArrayList<>();
-    for (List<MutableState> path : paths) {
-      int index = path.lastIndexOf(state);
+    for (IntArrayList path : paths) {
+      int index = path.lastIndexOf(state.getId());
       if (index != -1) {
-        if (fst.getSemiring().isNotZero(state.getFinalWeight()) || coaccessible.contains(state)) {
+        if (fst.getSemiring().isNotZero(state.getFinalWeight()) || coaccessible.contains(state.getId())) {
           for (int j = index; j > -1; j--) {
             if (!coaccessible.contains(path.get(j))) {
-              newCoAccessibles.add(path.get(j));
+              newCoAccessibles.add(fst.getState(path.get(j)));
               coaccessible.add(path.get(j));
             }
           }
@@ -68,15 +69,19 @@ public class Connect {
    * Copies a path
    */
   private static void duplicatePath(int lastPathIndex, MutableState fromState,
-                                    MutableState toState, ArrayList<ArrayList<MutableState>> paths) {
-    ArrayList<MutableState> lastPath = paths.get(lastPathIndex);
+                                    MutableState toState, List<IntArrayList> paths) {
+    IntArrayList lastPath = paths.get(lastPathIndex);
     // copy the last path to a new one, from start to current state
-    int fromIndex = lastPath.indexOf(fromState);
-    int toIndex = lastPath.indexOf(toState);
+    int fromIndex = lastPath.indexOf(fromState.getId());
+    int toIndex = lastPath.indexOf(toState.getId());
     if (toIndex == -1) {
       toIndex = lastPath.size() - 1;
     }
-    ArrayList<MutableState> newPath = Lists.newArrayList(lastPath.subList(fromIndex, toIndex));
+    // sublist
+    IntArrayList newPath = new IntArrayList(1 + (toIndex - fromIndex));
+    for (int i = fromIndex; i < toIndex; i++) {
+      newPath.add(lastPath.get(i));
+    }
     paths.add(newPath);
   }
 
@@ -84,25 +89,23 @@ public class Connect {
    * The depth first search recursion
    */
   private static MutableState dfs(MutableFst fst, MutableState start,
-                           ArrayList<ArrayList<MutableState>> paths, ArrayList<Arc>[] exploredArcs,
-                           ArrayList<MutableState> accessible) {
+                           List<IntArrayList> paths, List<Set<Arc>> exploredArcs,
+                           IntOpenHashSet accessible) {
     int lastPathIndex = paths.size() - 1;
 
-    ArrayList<Arc> currentExploredArcs = exploredArcs[start.getId()];
-    paths.get(lastPathIndex).add(start);
+    Set<Arc> currentExploredArcs = exploredArcs.get(start.getId());
+    paths.get(lastPathIndex).add(start.getId());
     if (start.getArcCount() != 0) {
       int arcCount = 0;
       int numArcs = start.getArcCount();
       for (int j = 0; j < numArcs; j++) {
         MutableArc arc = start.getArc(j);
-        if ((currentExploredArcs == null)
-            || !currentExploredArcs.contains(arc)) {
+        if ((currentExploredArcs == null) || !currentExploredArcs.contains(arc)) {
           lastPathIndex = paths.size() - 1;
           if (arcCount++ > 0) {
-            duplicatePath(lastPathIndex, fst.getStartState(), start,
-                          paths);
+            duplicatePath(lastPathIndex, fst.getStartState(), start, paths);
             lastPathIndex = paths.size() - 1;
-            paths.get(lastPathIndex).add(start);
+            paths.get(lastPathIndex).add(start.getId());
           }
           MutableState next = arc.getNextState();
           addExploredArc(start.getId(), arc, exploredArcs);
@@ -113,8 +116,7 @@ public class Connect {
         }
       }
     }
-    lastPathIndex = paths.size() - 1;
-    accessible.add(start);
+    accessible.add(start.getId());
 
     return start;
   }
@@ -123,25 +125,26 @@ public class Connect {
    * Adds an arc top the explored arcs list
    */
   private static void addExploredArc(int stateId, Arc arc,
-                                     ArrayList<Arc>[] exploredArcs) {
-    if (exploredArcs[stateId] == null) {
-      exploredArcs[stateId] = Lists.newArrayList();
+                                     List<Set<Arc>> exploredArcs) {
+    Set<Arc> ea = exploredArcs.get(stateId);
+    if (ea == null) {
+      ea = Sets.newIdentityHashSet();
+      exploredArcs.set(stateId, ea);
     }
-    exploredArcs[stateId].add(arc);
-
+    ea.add(arc);
   }
 
   /**
    * Initialization of a depth first search recursion
    */
-  private static void depthFirstSearch(MutableFst fst, ArrayList<MutableState> accessible,
-                                       ArrayList<ArrayList<MutableState>> paths,
-                                       ArrayList<Arc>[] exploredArcs,
-                                       ArrayList<MutableState> coaccessible) {
+  private static void depthFirstSearch(MutableFst fst, IntOpenHashSet accessible,
+                                       List<IntArrayList> paths,
+                                       List<Set<Arc>> exploredArcs,
+                                       IntOpenHashSet coaccessible) {
     MutableState currentState = fst.getStartState();
     MutableState nextState = currentState;
     do {
-      if (!accessible.contains(currentState)) {
+      if (!accessible.contains(currentState.getId())) {
         nextState = dfs(fst, currentState, paths, exploredArcs,
                         accessible);
       }
@@ -161,27 +164,29 @@ public class Connect {
    * @param fst the fst to trim
    */
   public static void apply(MutableFst fst) {
-    Semiring semiring = fst.getSemiring();
-    Preconditions.checkNotNull(semiring);
+    fst.throwIfInvalid();
 
-    ArrayList<MutableState> accessible = new ArrayList<>();
-    ArrayList<MutableState> coaccessible = new ArrayList<>();
+    IntOpenHashSet accessible = new IntOpenHashSet(fst.getStateCount());
+    IntOpenHashSet coaccessible = new IntOpenHashSet(fst.getStateCount());
     @SuppressWarnings("unchecked")
-    ArrayList<Arc>[] exploredArcs = new ArrayList[fst.getStateCount()];
+    List<Set<Arc>> exploredArcs = Lists.newArrayListWithCapacity(fst.getStateCount());
     for (int i = 0; i < fst.getStateCount(); i++) {
-      exploredArcs[i] = null;
+      exploredArcs.add(null);
     }
-    ArrayList<ArrayList<MutableState>> paths = new ArrayList<>();
-    paths.add(new ArrayList<MutableState>());
+    ArrayList<IntArrayList> paths = new ArrayList<>();
+    paths.add(new IntArrayList());
 
     depthFirstSearch(fst, accessible, paths, exploredArcs, coaccessible);
-
-    ArrayList<State> toDelete = new ArrayList<>();
+    if (accessible.size() == fst.getStateCount() || coaccessible.size() == fst.getStateCount()) {
+      // all are accessible so nothing to delete
+      return;
+    }
+    ArrayList<MutableState> toDelete = new ArrayList<>();
 
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
-      State s = fst.getState(i);
-      if (!(accessible.contains(s) || coaccessible.contains(s))) {
+      MutableState s = fst.getState(i);
+      if (!(accessible.contains(s.getId()) || coaccessible.contains(s.getId()))) {
         toDelete.add(s);
       }
     }

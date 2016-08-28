@@ -26,7 +26,6 @@ import com.google.common.io.Resources;
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
-import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.MutableSymbolTable;
@@ -261,8 +260,7 @@ public class Convert {
           int iLabel = isyms.getOrAdd(tokens[2]);
           int oLabel = osyms.getOrAdd(tokens[3]);
           double arcWeight = Double.parseDouble(tokens[4]);
-          MutableArc arc = new MutableArc(iLabel, oLabel, arcWeight, nextState);
-          inputState.addArc(arc);
+          fst.addArc(inputState, iLabel, oLabel, nextState, arcWeight);
         } else {
           // This is a final weight
           double finalWeight = Double.parseDouble(tokens[1]);

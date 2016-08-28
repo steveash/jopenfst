@@ -18,7 +18,6 @@ package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
-import com.github.steveash.jopenfst.MutableArc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
@@ -75,9 +74,8 @@ public class Reverse {
       for (int j = 0; j < numArcs; j++) {
         Arc olda = olds.getArc(j);
         MutableState next = stateMap[olda.getNextState().getId()];
-        MutableArc newa = new MutableArc(olda.getIlabel(), olda.getOlabel(),
-                                  semiring.reverse(olda.getWeight()), news);
-        next.addArc(newa);
+        double newWeight = semiring.reverse(olda.getWeight());
+        res.addArc(next, olda.getIlabel(), olda.getOlabel(), news, newWeight);
       }
     }
 

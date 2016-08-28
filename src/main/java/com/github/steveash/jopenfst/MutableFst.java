@@ -26,8 +26,8 @@ import com.github.steveash.jopenfst.utils.FstUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
@@ -281,6 +281,12 @@ public class MutableFst implements Fst {
     return newState(null);
   }
 
+  public MutableState newState(double finalWeight) {
+    MutableState newState = newState();
+    newState.setFinalWeight(finalWeight);
+    return newState;
+  }
+
   public MutableState newState(@Nullable String newStateSymbol) {
     MutableState s = new MutableState();
     return addState(s, newStateSymbol);
@@ -315,15 +321,30 @@ public class MutableFst implements Fst {
     );
   }
 
+  public MutableArc addArc(String startStateSymbol, int inSymbolId, int outSymbolId, String endStateSymbol, double weight) {
+    Preconditions.checkNotNull(stateSymbols, "cant use this without state symbols; call useStateSymbols()");
+    return addArc(
+        getOrNewState(startStateSymbol),
+        inSymbolId,
+        outSymbolId,
+        getOrNewState(endStateSymbol),
+        weight
+    );
+  }
+
   public MutableArc addArc(MutableState startState, String inSymbol, String outSymbol, MutableState endState, double weight) {
+    return addArc(startState, inputSymbols.getOrAdd(inSymbol), outputSymbols.getOrAdd(outSymbol), endState, weight);
+  }
+
+  public MutableArc addArc(MutableState startState, int inSymbolId, int outSymbolId, MutableState endState, double weight) {
     checkArgument(this.states.get(startState.getId()) == startState, "cant pass state that doesnt exist in fst");
     checkArgument(this.states.get(endState.getId()) == endState, "cant pass end state that doesnt exist in fst");
-    MutableArc newArc = new MutableArc(inputSymbols.getOrAdd(inSymbol),
-                                    outputSymbols.getOrAdd(outSymbol),
-                                    weight,
-                                    endState
-    );
+    MutableArc newArc = new MutableArc(inSymbolId,
+                                        outSymbolId,
+                                        weight,
+                                        endState);
     startState.addArc(newArc);
+    endState.addIncomingState(startState);
     return newArc;
   }
 
@@ -423,8 +444,11 @@ public class MutableFst implements Fst {
   /**
    * Deletes the given states and remaps the existing state ids
    */
-  public void deleteStates(Collection<? extends State> statesToDelete) {
-    for (State state : statesToDelete) {
+  public void deleteStates(Collection<MutableState> statesToDelete) {
+    if (statesToDelete.isEmpty()) {
+      return;
+    }
+    for (MutableState state : statesToDelete) {
       deleteState(state);
     }
     remapStateIds();
@@ -435,41 +459,54 @@ public class MutableFst implements Fst {
    *
    * @param state the state to delete
    */
-  private void deleteState(State state) {
+  private void deleteState(MutableState state) {
     if (state.getId() == this.start.getId()) {
       throw new IllegalArgumentException("Cannot delete start state.");
     }
+    // we're going to "compact" all of the nulls out and remap state ids at the end
+    this.states.set(state.getId(), null);
 
-    this.states.remove(state);
+    // this state won't be incoming to any of its arc's targets anymore
+    for (MutableArc mutableArc : state.getArcs()) {
+      mutableArc.getNextState().removeIncomingState(state);
+    }
 
     // delete arc's with nextstate equal to stateid
-    ArrayList<Integer> toDelete;
-    int numStates = states.size();
-    for (int i = 0; i < numStates; i++) {
-      MutableState s1 = states.get(i);
-
-      toDelete = new ArrayList<>();
-      int numArcs = s1.getArcCount();
-      for (int j = 0; j < numArcs; j++) {
-        Arc a = s1.getArc(j);
-        if (a.getNextState().equals(state)) {
-          toDelete.add(j);
+    for (MutableState inState : state.getIncomingStates()) {
+      Iterator<MutableArc> iter = inState.getArcs().iterator();
+      while (iter.hasNext()) {
+        MutableArc arc = iter.next();
+        if (arc.getNextState() == state) {
+          iter.remove();
         }
-      }
-      // indices not change when deleting in reverse ordering
-      Object[] toDeleteArray = toDelete.toArray();
-      Arrays.sort(toDeleteArray);
-      for (int j = toDelete.size() - 1; j >= 0; j--) {
-        Integer index = (Integer) toDeleteArray[j];
-        s1.deleteArc(index);
       }
     }
   }
 
   private void remapStateIds() {
+    // clear all of the nulls out
+
+    compactNulls(states);
     int numStates = states.size();
     for (int i = 0; i < numStates; i++) {
       states.get(i).id = i;
+    }
+  }
+
+  static <T> void compactNulls(ArrayList<T> list) {
+    int nextGood = 0;
+    for (int i = 0; i < list.size(); i++) {
+      T ss = list.get(i);
+      if (ss != null) {
+        if (i != nextGood) {
+          list.set(nextGood, ss);
+        }
+        nextGood += 1;
+      }
+    }
+    // trim the end
+    while (list.size() > nextGood) {
+      list.remove(list.size() - 1);
     }
   }
 
