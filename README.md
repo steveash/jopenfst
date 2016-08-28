@@ -62,7 +62,14 @@ moment its pretty close
 Changes:
 ------------
 
+* Adding back edges (kind of) to dramatically optimize a number of John's original naive implementations that had poor algorithmic complexity
+**
+* The original Connect/Trim implementation was wrong; fixed now.
+* Separated out interfaces for read-only/writeable elements (Arcs, States, Fsts) which allows
+convenient things like "union" symbol tables (to do mutating things without copying the entire source symbl table)
+* Clearly separated out algorithms by ones that mutate input args vs ones that produce new fsts
 * Updated some IO routines, used exceptions instead of System.err logging, some cleanup, fixed unit tests
 * Changed packages (although it can still deserialize FST models from the original repo)
 * Ported over code from the GSOC branch which apparently never made it in to the CMU Sphinx trunk
+
 
