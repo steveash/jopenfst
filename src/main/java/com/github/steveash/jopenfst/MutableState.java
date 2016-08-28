@@ -168,7 +168,7 @@ public class MutableState implements State {
     this.incomingStates.remove(inState);
   }
 
-  Iterable<MutableState> getIncomingStates() {
+  public Iterable<MutableState> getIncomingStates() {
     return this.incomingStates;
   }
 

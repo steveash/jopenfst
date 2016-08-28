@@ -32,6 +32,7 @@ import com.github.steveash.jopenfst.MutableSymbolTable;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
+import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
 import java.io.BufferedReader;
 import java.io.FileWriter;
@@ -180,6 +181,10 @@ public class Convert {
     } catch (IOException e1) {
       throw Throwables.propagate(e1);
     }
+  }
+
+  public static MutableFst importFst(String basename) {
+    return importFst(basename, TropicalSemiring.INSTANCE);
   }
 
   /**

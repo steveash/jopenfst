@@ -1,0 +1,20 @@
+000	Infinity
+111	Infinity
+222	Infinity
+333	Infinity
+555	Infinity
+666	1.0
+AAA	Infinity
+BBB	Infinity
+CCC	Infinity
+000	111	a	a	1.0
+111	222	b	b	2.0
+222	333	a	b	3.0
+222	555	a	b	5.0
+333	111	c	a	1.0
+555	666	b	a	1.0
+666	AAA	a	a	1.0
+AAA	BBB	b	b	1.0
+BBB	111	a	a	1.
+BBB	CCC	a	c	2.
+CCC	BBB	c	b	1.

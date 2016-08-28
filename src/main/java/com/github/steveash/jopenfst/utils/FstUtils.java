@@ -28,17 +28,64 @@ import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.UnionSymbolTable;
 import com.github.steveash.jopenfst.WriteableSymbolTable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @author Steve Ash
  */
 public class FstUtils {
 
+  private static final Logger log = LoggerFactory.getLogger(FstUtils.class);
+
+  public interface EqualsReporter {
+    void report(String msg, Object a, Object b);
+  }
+
+  public static final EqualsReporter NULL_REPORTER = new EqualsReporter() {
+    @Override
+    public void report(String msg, Object a, Object b) {
+      // nothing
+    }
+  };
+
+  public static final EqualsReporter LOG_REPORTER = new EqualsReporter() {
+    @Override
+    public void report(String msg, Object a, Object b) {
+      String aa = objToString(a);
+      String bb = objToString(b);
+      log.info("Equals difference: " + msg + " " + aa + " " + bb);
+    }
+
+    private String objToString(Object a) {
+      String aa = "<null>";
+      if (a != null) {
+        aa = a.toString();
+        if (aa.length() > 80) {
+          aa = "\n" + aa;
+        }
+      }
+      return aa;
+    }
+  };
+
   public static boolean fstEquals(Object thisFstObj, Object thatFstObj) {
     return fstEquals(thisFstObj, thatFstObj, Double.MIN_VALUE);
   }
 
+  public static boolean fstEquals(Object thisFstObj, Object thatFstObj, EqualsReporter reporter) {
+    return fstEquals(thisFstObj, thatFstObj, Double.MIN_VALUE, reporter);
+  }
+
   public static boolean fstEquals(Object thisFstObj, Object thatFstObj,
                                   double epsilon) {
+    return fstEquals(thisFstObj, thatFstObj, epsilon, NULL_REPORTER);
+  }
+
+  public static boolean fstEquals(Object thisFstObj,
+                                  Object thatFstObj,
+                                  double epsilon,
+                                  EqualsReporter reporter) {
     if (thisFstObj == thatFstObj) {
       return true;
     }
@@ -53,27 +100,39 @@ public class FstUtils {
     Fst thatFst = (Fst) thatFstObj;
 
     if (thisFst.getSemiring() != null ? !thisFst.getSemiring().equals(thatFst.getSemiring()) : thatFst.getSemiring() != null) {
+      reporter.report("fst.semiring", thisFst.getSemiring(), thatFst.getSemiring());
       return false;
     }
 
     if (thisFst.getStateCount() != thatFst.getStateCount()) {
+      reporter.report("fst.statecount", thisFst.getStateCount(), thatFst.getStateCount());
       return false;
     }
     for (int i = 0; i < thisFst.getStateCount(); i++) {
-      if (!FstUtils.stateEquals(thisFst.getState(i), thatFst.getState(i), epsilon)) {
+      State thisState = thisFst.getState(i);
+      State thatState = thatFst.getState(i);
+      if (!FstUtils.stateEquals(thisState, thatState, epsilon, reporter)) {
+        reporter.report("fst.state", thisState, thatState);
         return false;
       }
     }
     if (thisFst.getStartState() != null ? (thisFst.getStartState().getId() != thatFst.getStartState().getId()) : thatFst.getStartState() != null) {
+      reporter.report("fst.startstate", thisFst.getStartState(), thatFst.getStartState());
       return false;
     }
-    if (thisFst.getInputSymbols() != null ? !FstUtils.symbolTableEquals(thisFst.getInputSymbols(), thatFst.getInputSymbols()) : thatFst.getInputSymbols() != null) {
+    if (thisFst.getInputSymbols() != null ? !FstUtils.symbolTableEquals(thisFst.getInputSymbols(), thatFst.getInputSymbols(), reporter) : thatFst.getInputSymbols() != null) {
+      reporter.report("fst.inputSymbols", thisFst.getInputSymbols(), thatFst.getInputSymbols());
       return false;
     }
-    if (thisFst.getStateSymbols() != null ? !FstUtils.symbolTableEquals(thisFst.getStateSymbols(), thatFst.getStateSymbols()) : thatFst.getStateSymbols() != null) {
+    if (thisFst.getStateSymbols() != null ? !FstUtils.symbolTableEquals(thisFst.getStateSymbols(), thatFst.getStateSymbols(), reporter) : thatFst.getStateSymbols() != null) {
+      reporter.report("fst.stateSymbols", thisFst.getStateSymbols(), thatFst.getStateSymbols());
       return false;
     }
-    return thisFst.getOutputSymbols() != null ? FstUtils.symbolTableEquals(thisFst.getOutputSymbols(), thatFst.getOutputSymbols()) :thatFst.getOutputSymbols() == null;
+    if (!(thisFst.getOutputSymbols() != null ? FstUtils.symbolTableEquals(thisFst.getOutputSymbols(), thatFst.getOutputSymbols(), reporter) :thatFst.getOutputSymbols() == null)) {
+      reporter.report("fst.outSymbols", thisFst.getOutputSymbols(), thatFst.getOutputSymbols());
+      return false;
+    }
+    return true;
   }
 
   public static boolean arcEquals(Object thisArcObj, Object thatArcObj) {
@@ -115,6 +174,11 @@ public class FstUtils {
   }
 
   public static boolean stateEquals(Object thisStateObj, Object thatStateObj, double epsilon) {
+    return stateEquals(thisStateObj, thatStateObj, epsilon, NULL_REPORTER);
+  }
+
+  public static boolean stateEquals(
+      Object thisStateObj, Object thatStateObj, double epsilon, EqualsReporter reporter) {
     if (thisStateObj == thatStateObj) {
       return true;
     }
@@ -129,16 +193,22 @@ public class FstUtils {
     State thatState = (State) thatStateObj;
 
     if (thisState.getId() != thatState.getId()) {
+      reporter.report("state.id", thisState.getId(), thatState.getId());
       return false;
     }
     if (!DoubleMath.fuzzyEquals(thatState.getFinalWeight(), thisState.getFinalWeight(), epsilon)) {
+      reporter.report("state.finalWeight", thisState.getFinalWeight(), thatState.getFinalWeight());
       return false;
     }
     if (thisState.getArcs().size() != thatState.getArcs().size()) {
+      reporter.report("state.arcCount", thisState.getArcCount(), thatState.getArcCount());
       return false;
     }
     for (int i = 0; i < thisState.getArcs().size(); i++) {
-      if (!arcEquals(thisState.getArc(i), thatState.getArc(i), epsilon)) {
+      Arc thisArc = thisState.getArc(i);
+      Arc thatArc = thatState.getArc(i);
+      if (!arcEquals(thisArc, thatArc, epsilon)) {
+        reporter.report("state.arc", thisArc, thatArc);
         return false;
       }
     }
@@ -146,6 +216,12 @@ public class FstUtils {
   }
 
   public static boolean symbolTableEquals(Object thisSyms, Object thatSyms) {
+    return symbolTableEquals(thisSyms, thatSyms, NULL_REPORTER);
+  }
+
+  public static boolean symbolTableEquals(Object thisSyms,
+                                          Object thatSyms,
+                                          EqualsReporter reporter) {
     if (thisSyms == thatSyms) {
       return true;
     }
@@ -153,6 +229,7 @@ public class FstUtils {
       return false;
     }
     if (!SymbolTable.class.isAssignableFrom(thisSyms.getClass()) || !SymbolTable.class.isAssignableFrom(thatSyms.getClass())) {
+      reporter.report("symbolTable.isAssignable", thisSyms, thatSyms);
       return false;
     }
 
@@ -160,13 +237,18 @@ public class FstUtils {
     SymbolTable thatS = (SymbolTable) thatSyms;
 
     if (thisS.size() != thatS.size()) {
+      reporter.report("symbolTable.size", thisS.size(), thatS.size());
       return false;
     }
     for (ObjectIntCursor<String> cursor : thisS) {
       if (thatS.contains(cursor.key)) {
-        if (thatS.get(cursor.key) == cursor.value) {
+        int thatV = thatS.get(cursor.key);
+        if (thatV == cursor.value) {
           continue;
         }
+        reporter.report("symbolTable.key", cursor.value, thatV);
+      } else {
+        reporter.report("symbolTable.missingKey", cursor.key, cursor.value);
       }
       return false;
     }

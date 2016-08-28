@@ -46,7 +46,7 @@ public class MutableFst implements Fst {
                                      symbolTableEffectiveCopy(fst.getOutputSymbols())
     );
     if (fst.isUsingStateSymbols()) {
-      copy.useStateSymbols(symbolTableEffectiveCopy(fst.getStateSymbols()));
+      copy.useStateSymbols(new MutableSymbolTable(fst.getStateSymbols()));
     }
     return copy;
   }
@@ -81,7 +81,7 @@ public class MutableFst implements Fst {
   private MutableState start;
   private WriteableSymbolTable inputSymbols;
   private WriteableSymbolTable outputSymbols;
-  private WriteableSymbolTable stateSymbols;
+  private MutableSymbolTable stateSymbols;
 
   public MutableFst() {
     this(makeDefaultRing(), new MutableSymbolTable(), new MutableSymbolTable());
@@ -149,7 +149,7 @@ public class MutableFst implements Fst {
    * This sets a state symbols table; this takes ownership of this so don't share symbol
    * tables
    */
-  public void useStateSymbols(WriteableSymbolTable stateSymbolsToOwn) {
+  public void useStateSymbols(MutableSymbolTable stateSymbolsToOwn) {
     this.stateSymbols = stateSymbolsToOwn;
   }
 
@@ -465,6 +465,9 @@ public class MutableFst implements Fst {
     }
     // we're going to "compact" all of the nulls out and remap state ids at the end
     this.states.set(state.getId(), null);
+    if (isUsingStateSymbols()) {
+      stateSymbols.remove(state.getId());
+    }
 
     // this state won't be incoming to any of its arc's targets anymore
     for (MutableArc mutableArc : state.getArcs()) {
@@ -488,8 +491,22 @@ public class MutableFst implements Fst {
 
     compactNulls(states);
     int numStates = states.size();
+    ArrayList<IndexPair> toRemap = null;
+    if (isUsingStateSymbols()) {
+      toRemap = Lists.newArrayList();
+    }
     for (int i = 0; i < numStates; i++) {
-      states.get(i).id = i;
+      MutableState mutableState = states.get(i);
+      if (mutableState.id != i) {
+        if (isUsingStateSymbols()) {
+          toRemap.add(new IndexPair(mutableState.getId(), i));
+        }
+        mutableState.id = i;
+      }
+    }
+    if (isUsingStateSymbols()) {
+      stateSymbols.remapAll(toRemap);
+      stateSymbols.trimIds();
     }
   }
 

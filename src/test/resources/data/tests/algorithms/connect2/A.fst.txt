@@ -1,0 +1,32 @@
+000	Infinity
+111	Infinity
+222	Infinity
+333	Infinity
+444	Infinity
+555	Infinity
+666	1.
+777	Infinity
+888	Infinity
+999	Infinity
+AAA	Infinity
+BBB	Infinity
+CCC	Infinity
+DDD	Infinity
+000	111	a	a	1.
+111	222	b	b	2.
+222	333	a	b	3.
+333	111	c	a	1.
+333	444	c	c	1.
+222	555	a	b	5.
+555	666	b	a	1.
+444	888	a	c	1.
+777	333	c	c	1.
+777	111	a	c	2.
+888	999	c	c	2.
+999	444	b	a	1.
+666	AAA	a	a	1.
+AAA	BBB	b	b	1.
+BBB	111	a	a	1.
+BBB	CCC	a	c	2.
+CCC	BBB	c	b	1.
+CCC	DDD	a	a	1.

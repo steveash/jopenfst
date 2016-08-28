@@ -129,6 +129,24 @@ public abstract class AbstractSymbolTable implements SymbolTable {
 
   }
 
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Symbols;size=").append(size()).append(";[");
+    boolean tooBig = this.size() > 25;
+    int count = 0;
+    for (int i = 0; i < Math.min(25, this.size()); i++) {
+      String symbol = idToSymbol.get(i);
+      if (i > 0) sb.append(',');
+      sb.append(i).append("=").append(symbol == null ? "<null>" : symbol);
+    }
+    if (tooBig) {
+      int omitted = this.size() - 25;
+      sb.append(",...").append(omitted).append(" omitted]");
+    }
+    return sb.toString();
+  }
+
   // no hash code because these shouldn't ever be maps
 
   @Override

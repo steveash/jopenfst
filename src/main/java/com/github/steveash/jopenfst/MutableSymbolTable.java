@@ -16,6 +16,12 @@
 
 package com.github.steveash.jopenfst;
 
+import com.google.common.collect.Lists;
+
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
+
+import java.util.List;
+
 /**
  * A mutable symbol table to record mappings between symbols and ids
  *
@@ -55,6 +61,56 @@ public class MutableSymbolTable extends AbstractSymbolTable implements Writeable
     if (!idToSymbol.putIfAbsent(id, symbol)) {
       throw new IllegalStateException("Somehow the id->symbol table is wrong for " + symbol + " to " + id + " got " +
                                       idToSymbol.get(id));
+    }
+  }
+
+  public void remove(int id) {
+    String symbol = invert().keyForId(id);
+    idToSymbol.remove(id);
+    symbolToId.remove(symbol);
+  }
+
+  /**
+   * If there are ids to reclaim at the end, then this will do this (useful after a compaction/connect of the fst)
+   */
+  public void trimIds() {
+    // typical case shortcut
+    if (idToSymbol.containsKey(nextId - 1)) {
+      return;
+    }
+    int max = -1;
+    for (IntObjectCursor<String> cursor : idToSymbol) {
+      max = Math.max(max, cursor.key);
+    }
+    nextId = max + 1;
+  }
+
+  /**
+   * Remap a set of oldIndex -> newIndex such that this whole thing is done as one operation and you dont have
+   * to worry about the ordering to consider to be sure you dont lose any symbols
+   * Each indexPair is <oldId, newId>
+   * @param listOfOldToNew
+   */
+  public void remapAll(List<IndexPair> listOfOldToNew) {
+    List<String> symbols = Lists.newArrayListWithCapacity(listOfOldToNew.size());
+    int max = -1;
+    for (int i = 0; i < listOfOldToNew.size(); i++) {
+      IndexPair indexPair = listOfOldToNew.get(i);
+      symbols.add(invert().keyForId(indexPair.getLeft()));
+      max = Math.max(max, indexPair.getRight());
+    }
+    if (max >= nextId) {
+      nextId = max + 1;
+    }
+    // now actually remap them
+    for (int i = 0; i < listOfOldToNew.size(); i++) {
+      IndexPair pair = listOfOldToNew.get(i);
+      String symbol = symbols.get(i);
+      idToSymbol.remove(pair.getLeft());
+      symbolToId.remove(symbol);
+
+      idToSymbol.put(pair.getRight(), symbol);
+      symbolToId.put(symbol, pair.getRight());
     }
   }
 

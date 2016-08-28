@@ -19,6 +19,7 @@ package com.github.steveash.jopenfst.operations;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
+import com.github.steveash.jopenfst.utils.FstUtils;
 
 import org.junit.Test;
 
@@ -37,7 +38,30 @@ public class ConnectTest {
                                                 new TropicalSemiring());
     Connect.apply(fst);
 
-    assertTrue(connectSaved.equals(fst));
+    assertTrue(FstUtils.fstEquals(fst, connectSaved, FstUtils.LOG_REPORTER));
+
+  }
+
+  @Test
+  public void testConnectNoOp() {
+    MutableFst fst = Convert.importFst("data/tests/algorithms/connect/B");
+    MutableFst connectSaved = Convert.importFst("data/tests/algorithms/connect/B");
+    Connect.apply(fst);
+
+    assertTrue(FstUtils.fstEquals(fst, connectSaved, FstUtils.LOG_REPORTER));
+  }
+
+  @Test
+  public void testConnectWithStateSymbols() {
+    MutableFst fst = Convert.importFst("data/tests/algorithms/connect2/A",
+                                       new TropicalSemiring());
+    assertTrue(fst.isUsingStateSymbols());
+    MutableFst connectSaved = Convert.importFst("data/tests/algorithms/connect2/expected",
+                                                new TropicalSemiring());
+    Connect.apply(fst);
+    assertTrue(fst.isUsingStateSymbols());
+
+    assertTrue(FstUtils.fstEquals(fst, connectSaved, FstUtils.LOG_REPORTER));
 
   }
 }
