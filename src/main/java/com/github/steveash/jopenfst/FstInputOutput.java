@@ -32,7 +32,8 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.PushbackInputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -195,7 +196,7 @@ public class FstInputOutput {
     out.writeObject(fst.getSemiring());
     out.writeInt(fst.getStateCount());
 
-    HashMap<State, Integer> stateMap = new HashMap<>(fst.getStateCount());
+    Map<State, Integer> stateMap = new IdentityHashMap<>(fst.getStateCount());
     for (int i = 0; i < fst.getStateCount(); i++) {
       State s = fst.getState(i);
       out.writeInt(s.getArcCount());
