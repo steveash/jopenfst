@@ -137,7 +137,7 @@ public class MutableArc implements Arc {
     result = (int) (temp ^ (temp >>> 32));
     result = 31 * result + iLabel;
     result = 31 * result + oLabel;
-    result = 31 * result + (nextState != null ? nextState.hashCode() : 0);
+    result = 31 * result + (nextState != null ? nextState.getId() : 0);
     return result;
   }
 

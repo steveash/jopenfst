@@ -18,9 +18,11 @@ package com.github.steveash.jopenfst.io;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.CharSource;
+import com.google.common.io.Files;
 import com.google.common.io.Resources;
 
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
@@ -34,7 +36,10 @@ import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -166,7 +171,17 @@ public class Convert {
     } catch (IllegalArgumentException e) {
       return Optional.absent();
     }
-    CharSource cs = asCharSource(resource, Charsets.UTF_8);
+    return importSymbolsFrom(asCharSource(resource, Charsets.UTF_8));
+  }
+
+  private static Optional<MutableSymbolTable> importSymbols(File maybeFile) {
+    if (maybeFile.exists()) {
+      return importSymbolsFrom(Files.asCharSource(maybeFile, Charsets.UTF_8));
+    }
+    return Optional.absent();
+  }
+
+  private static Optional<MutableSymbolTable> importSymbolsFrom(CharSource cs) {
     try {
       ImmutableList<String> lines = cs.readLines();
       MutableSymbolTable newTable = new MutableSymbolTable();
@@ -188,8 +203,42 @@ public class Convert {
   }
 
   /**
-   * Imports an openfst text format Several files are imported as follows: - basename.input.syms - basename.output.syms
-   * - basename.fst.txt
+   * Imports an openfst text format. You pass in the file pointing to the fst.txt file and
+   * it assumes that the other files has the same prefix, but with input.syms and output.syms
+   * as suffixes.  For exmaple if you pass in:
+   * path/to/mymodel.fst.txt
+   * It assumes that you also have:
+   * path/to/mymodel.input.syms
+   * path/to/mymodel.output.syms
+   *
+   * @param fileToFst the files' base name
+   * @param semiring  the fst's semiring
+   */
+  public static MutableFst importFst(File fileToFst, Semiring semiring) {
+    Preconditions.checkArgument(fileToFst.exists(), "File to the fst.txt openfst output doesnt exist", fileToFst);
+    Preconditions.checkArgument(fileToFst.getName().endsWith(FST_TXT), "fst.txt path must end in .fst.txt", fileToFst);
+    String basepath = fileToFst.getAbsolutePath();
+    basepath = StringUtils.removeEnd(basepath, FST_TXT);
+    CharSource cs = Files.asCharSource(fileToFst, Charsets.UTF_8);
+
+    Optional<MutableSymbolTable> maybeInputs = importSymbols(new File(basepath + INPUT_SYMS));
+    Optional<MutableSymbolTable> maybeOutputs = importSymbols(new File(basepath + OUTPUT_SYMS));
+    Optional<MutableSymbolTable> maybeStates = importSymbols(new File(basepath + STATES_SYMS));
+
+    return convertFrom(cs, maybeInputs, maybeOutputs, maybeStates, semiring);
+  }
+
+  /**
+   * @see #importFst(File, Semiring)
+   */
+  public static MutableFst importFst(File fileToFst) {
+    return importFst(fileToFst, TropicalSemiring.INSTANCE);
+  }
+
+  /**
+   * Imports an openfst text format. You pass in the base path that can be loaded off of the classpath
+   * For example if you had classpath location data with files data/mymodel.fst.txt, data/mymodel.input.syms,
+   * and data/mymodel.output.syms then you would pass "data/mymodel" to this method
    *
    * @param basename the files' base name
    * @param semiring the fst's semiring
@@ -197,7 +246,16 @@ public class Convert {
   public static MutableFst importFst(String basename, Semiring semiring) {
 
     Optional<MutableSymbolTable> maybeInputs = importSymbols(basename + INPUT_SYMS);
+    Optional<MutableSymbolTable> maybeOutputs = importSymbols(basename + OUTPUT_SYMS);
+    Optional<MutableSymbolTable> maybeStates = importSymbols(basename + STATES_SYMS);
+    CharSource cs = asCharSource(Resources.getResource(basename + FST_TXT), Charsets.UTF_8);
 
+    return convertFrom(cs, maybeInputs, maybeOutputs, maybeStates, semiring);
+  }
+
+  private static MutableFst convertFrom(CharSource fstSource, Optional<MutableSymbolTable> maybeInputs,
+                                        Optional<MutableSymbolTable> maybeOutputs,
+                                        Optional<MutableSymbolTable> maybeStates, Semiring semiring) {
     MutableSymbolTable isyms;
     if (maybeInputs.isPresent()) {
       isyms = maybeInputs.get();
@@ -206,7 +264,6 @@ public class Convert {
       isyms.put(MutableFst.EPS, 0);
     }
 
-    Optional<MutableSymbolTable> maybeOutputs = importSymbols(basename + OUTPUT_SYMS);
     MutableSymbolTable osyms;
     if (maybeOutputs.isPresent()) {
       osyms = maybeOutputs.get();
@@ -215,14 +272,14 @@ public class Convert {
       osyms.put(MutableFst.EPS, 0);
     }
 
-    MutableSymbolTable ssyms = importSymbols(basename + STATES_SYMS).orNull();
     MutableFst fst = new MutableFst(semiring, isyms, osyms);
-    if (ssyms != null) {
+    MutableSymbolTable ssyms = null;
+    if (maybeStates.isPresent()) {
+      ssyms = maybeStates.get();
       fst.useStateSymbols(ssyms);
     }
 
-    CharSource cs = asCharSource(Resources.getResource(basename + FST_TXT), Charsets.UTF_8);
-    try (BufferedReader br = cs.openBufferedStream()) {
+    try (BufferedReader br = fstSource.openBufferedStream()) {
       boolean firstLine = true;
       String strLine;
       HashMap<Integer, MutableState> stateMap = new HashMap<>();

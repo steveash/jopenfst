@@ -22,6 +22,8 @@ import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 
 import org.junit.Test;
 
+import java.io.File;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -39,5 +41,26 @@ public class ConvertTest {
 
     read1.getState(0).getArc(1).setWeight(12332.32f);
     assertFalse(read1.equals(read2));
+  }
+
+  @Test
+  public void shouldConvertUsingFile() throws Exception {
+    File file = new File("src/test/resources/data/openfst/basic.fst.txt");
+    assertTrue("file must exist, cant find: " + file.getCanonicalPath(), file.exists());
+    MutableFst read1 = Convert.importFst(file, new TropicalSemiring());
+    ImmutableFst read2 = new ImmutableFst(read1);
+
+    assertTrue(read1.equals(read2));
+
+    read1.getState(0).getArc(1).setWeight(12332.32f);
+    assertFalse(read1.equals(read2));
+  }
+
+  @Test
+  public void shouldImportCyclic() throws Exception {
+    MutableFst read = Convert.importFst("data/openfst/cyclic", new TropicalSemiring());
+//    assertTrue(read.hashCode() != 0); // just testing to make sure no stack overflows due to cycles
+    ImmutableFst read2 = new ImmutableFst(read);
+    assertTrue(read.equals(read2));
   }
 }

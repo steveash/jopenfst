@@ -420,7 +420,14 @@ public class MutableFst implements Fst {
     Preconditions.checkNotNull(start, "must have a start state");
   }
 
-  @Deprecated // just use the text version; it will be more forward compatible
+  /**
+   * Writes a binary version of this to a file out to disk. Be aware that binary serialization
+   * format may change over time. We write a version number there and will do a best effort
+   * to keep the formats backwards and forwards compatible across major version changes, but
+   * the text format will always be backwards/forwards so consider saving in that format instead
+   * @param file
+   * @throws IOException
+   */
   public void saveModel(File file) throws IOException {
     FstInputOutput.writeFstToBinaryFile(this, file);
   }
