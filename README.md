@@ -15,6 +15,15 @@ abandoned and doesn't appear to have been integrated in to the final CMU Sphinx 
 WFST library for some of my stuff, so I used his code as a starting point. I have cleaned up quite a bit
  of the code, really changed the APIs, and updated unit tests. My JG2P project uses this, and thus I have
  some confidence that the code is working accurately. However, I would still consider this *beta quality*. When I am comfortable with the stability, I will push a v1.0 to Maven Central Repo.
+ 
+Current version:
+```xml
+<dependency>
+    <groupId>com.github.steveash.jopenfst</groupId>
+    <artifactId>jopenfst</artifactId>
+    <version>0.1.1.ALPHA</version>
+</dependency>
+```
 
 Quick Start
 -----------
