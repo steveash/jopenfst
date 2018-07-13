@@ -21,7 +21,7 @@ import java.io.Serializable;
 /**
  * Abstract semiring class.
  *
- * @author "John Salatas <jsalatas@users.sourceforge.net>"
+ * @author "John Salatas jsalatas@users.sourceforge.net"
  */
 public abstract class Semiring implements Serializable {
 

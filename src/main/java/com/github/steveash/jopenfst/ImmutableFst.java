@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
-/**
- *
- */
 package com.github.steveash.jopenfst;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 import com.github.steveash.jopenfst.semiring.Semiring;
 import com.github.steveash.jopenfst.utils.FstUtils;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 
 /**
- * Immutable version of an FST that is thread safe and immutable
+ * Immutable version of an FST; constructed from a mutableFst instance
+ *
+ * NOTE: All Immutable* classes are thread safe
+ * @author Steve Ash
  */
 public class ImmutableFst implements Fst {
 
@@ -122,13 +121,6 @@ public class ImmutableFst implements Fst {
   @Override
   public int lookupOutputSymbol(String symbol) {
     return otable.get(symbol);
-  }
-
-  @Override
-  public void throwIfThisOutputIsNotThatInput(Fst that) {
-    if (!this.otable.equals(that.getInputSymbols())) {
-      throw new IllegalArgumentException("Symbol tables don't match, cant compose " + this + " to " + that);
-    }
   }
 
   @Override

@@ -19,26 +19,32 @@ package com.github.steveash.jopenfst.operations;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
+import com.github.steveash.jopenfst.State;
+import com.google.common.collect.Ordering;
 
 import java.util.Comparator;
 
 /**
- * ArcSort operation.
+ * ArcSort operation; sorts all of the states and arcs within states by the given comparator
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class ArcSort {
 
   /**
-   * Default Constructor
+   * @see #sortBy(MutableFst, Comparator)
+   * @see ILabelCompare
+   * @param fst fst to sort
    */
-  private ArcSort() {
-  }
-
   public static void sortByInput(MutableFst fst) {
     sortBy(fst, ILabelCompare.INSTANCE);
   }
 
+  /**
+   * @see #sortBy(MutableFst, Comparator)
+   * @see OLabelCompare
+   * @param fst fst to sort
+   */
   public static void sortByOutput(MutableFst fst) {
     sortBy(fst, OLabelCompare.INSTANCE);
   }
@@ -48,13 +54,23 @@ public class ArcSort {
    * provided comparator.
    *
    * @param fst the fst to sort it's arcs
-   * @param cmp the provided Comparator
+   * @param comparator the provided Comparator
    */
-  public static void sortBy(MutableFst fst, Comparator<Arc> cmp) {
+  public static void sortBy(MutableFst fst, Comparator<Arc> comparator) {
     int numStates = fst.getStateCount();
     for (int i = 0; i < numStates; i++) {
       MutableState s = fst.getState(i);
-      s.arcSort(cmp);
+      s.arcSort(comparator);
     }
+  }
+
+  /**
+   * Returns true if the given state is sorted by the comparator
+   * @param state
+   * @param comparator
+   * @return
+   */
+  public static boolean isSorted(State state, Comparator<Arc> comparator) {
+    return Ordering.from(comparator).isOrdered(state.getArcs());
   }
 }

@@ -16,102 +16,26 @@
 
 package com.github.steveash.jopenfst.operations;
 
-import com.google.common.base.Preconditions;
-
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
+import com.google.common.base.Preconditions;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 
 /**
  * Remove epsilon operation.
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class RemoveEpsilon {
 
   /**
-   * Default Constructor
-   */
-  private RemoveEpsilon() {
-  }
-
-  /**
-   * Put a new state in the epsilon closure
-   */
-  private static void put(State fromState, State toState, double weight,
-                          HashMap<Integer, Double>[] cl) {
-    HashMap<Integer, Double> tmp = cl[fromState.getId()];
-    if (tmp == null) {
-      tmp = new HashMap<>();
-      cl[fromState.getId()] = tmp;
-    }
-    tmp.put(toState.getId(), weight);
-  }
-
-  /**
-   * Add a state in the epsilon closure
-   */
-  private static void add(State fromState, State toState, double weight,
-                          HashMap<Integer, Double>[] cl, Semiring semiring) {
-    Double old = getPathWeight(fromState, toState, cl);
-    if (old == null) {
-      put(fromState, toState, weight, cl);
-    } else {
-      put(fromState, toState, semiring.plus(weight, old), cl);
-    }
-
-  }
-
-  /**
-   * Calculate the epsilon closure
-   */
-  private static void calcClosure(Fst fst, State state,
-                                  HashMap<Integer, Double>[] cl, Semiring semiring, int iEps, int oEps) {
-    State s = state;
-
-    double pathWeight;
-    int numArcs = s.getArcCount();
-    for (int j = 0; j < numArcs; j++) {
-      Arc a = s.getArc(j);
-      if ((a.getIlabel() == iEps) && (a.getOlabel() == oEps)) {
-        if (cl[a.getNextState().getId()] == null) {
-          calcClosure(fst, a.getNextState(), cl, semiring, iEps, oEps);
-        }
-        if (cl[a.getNextState().getId()] != null) {
-          for (Integer pathFinalStateIndex : cl[a.getNextState().getId()].keySet()) {
-            State pathFinalState = fst.getState(pathFinalStateIndex);
-            pathWeight = semiring.times(
-                getPathWeight(a.getNextState(), pathFinalState, cl),
-                a.getWeight());
-            add(state, pathFinalState, pathWeight, cl, semiring);
-          }
-        }
-        add(state, a.getNextState(), a.getWeight(), cl, semiring);
-      }
-    }
-  }
-
-  /**
-   * Get an epsilon path's cost in epsilon closure
-   */
-  private static Double getPathWeight(State in, State out,
-                                      HashMap<Integer, Double>[] cl) {
-    if (cl[in.getId()] != null) {
-      return cl[in.getId()].get(out.getId());
-    }
-
-    return null;
-  }
-
-  /**
-   * Removes epsilon transitions from an fst.
-   *
-   * It return a new epsilon-free fst and does not modify the original fst
+   * Removes epsilon transitions from an fst. Returns a new epsilon-free fst and does not modify the original fst
    *
    * @param fst the fst to remove epsilon transitions from
    * @return the epsilon-free fst
@@ -121,77 +45,145 @@ public class RemoveEpsilon {
     Preconditions.checkNotNull(fst.getSemiring());
 
     Semiring semiring = fst.getSemiring();
-    MutableFst res = MutableFst.emptyWithCopyOfSymbols(fst);
+    MutableFst result = MutableFst.emptyWithCopyOfSymbols(fst);
     int iEps = fst.getInputSymbols().get(Fst.EPS);
     int oEps = fst.getOutputSymbols().get(Fst.EPS);
 
     @SuppressWarnings("unchecked")
-    HashMap<Integer, Double>[] cl = new HashMap[fst.getStateCount()];
+    HashMap<Integer,Double>[] closure = new HashMap[fst.getStateCount()];
     MutableState[] oldToNewStateMap = new MutableState[fst.getStateCount()];
     State[] newToOldStateMap = new State[fst.getStateCount()];
+    initResultStates(fst, result, oldToNewStateMap, newToOldStateMap);
+    addNonEpsilonArcs(fst, result, iEps, oEps, closure, oldToNewStateMap);
 
-    int numStates = fst.getStateCount();
-    for (int i = 0; i < numStates; i++) {
-      State s = fst.getState(i);
+    // augment fst with arcs generated from epsilon moves.
+    for (int i = 0; i < result.getStateCount(); i++) {
+      MutableState state = result.getState(i);
+      State oldState = newToOldStateMap[state.getId()];
+      if (closure[oldState.getId()] == null) {
+        continue;
+      }
+      for (Integer pathFinalStateIndex : closure[oldState.getId()].keySet()) {
+        State closureState = fst.getState(pathFinalStateIndex);
+        if (semiring.isNotZero(closureState.getFinalWeight())) {
+          Double prevWeight = getPathWeight(oldState, closureState, closure);
+          Preconditions.checkNotNull(prevWeight, "problem with prev weight on closure from %s", oldState);
+          state.setFinalWeight(semiring.plus(state.getFinalWeight(), semiring.times(prevWeight, closureState.getFinalWeight())));
+        }
+        for (int j = 0; j < closureState.getArcCount(); j++) {
+          Arc arc = closureState.getArc(j);
+          if ((arc.getIlabel() != iEps) || (arc.getOlabel() != oEps)) {
+            Double pathWeight = getPathWeight(oldState, closureState, closure);
+            Preconditions.checkNotNull(pathWeight, "problem with prev weight on closure from %s", oldState);
+            double newWeight = semiring.times(arc.getWeight(), pathWeight);
+            MutableState nextState = oldToNewStateMap[arc.getNextState().getId()];
+            result.addArc(state, arc.getIlabel(), arc.getOlabel(), nextState, newWeight);
+          }
+        }
+      }
+    }
+
+    Connect.apply(result);
+    ArcSort.sortByInput(result);
+
+    return result;
+  }
+
+  private static void addNonEpsilonArcs(Fst fst, MutableFst result, int iEps, int oEps, HashMap<Integer,Double>[] closure, MutableState[] oldToNewStateMap) {
+    for (int i = 0; i < fst.getStateCount(); i++) {
+      State state = fst.getState(i);
+      // Add non-epsilon arcs
+      MutableState newState = oldToNewStateMap[state.getId()];
+      for (int j = 0; j < state.getArcCount(); j++) {
+        Arc arc = state.getArc(j);
+        if ((arc.getIlabel() != iEps) || (arc.getOlabel() != oEps)) {
+          MutableState resNextState = oldToNewStateMap[arc.getNextState().getId()];
+          result.addArc(newState, arc.getIlabel(), arc.getOlabel(), resNextState, arc.getWeight());
+        }
+      }
+
+      // Compute epsilon closure
+      if (closure[state.getId()] == null) {
+        calculateClosure(fst, state, closure, fst.getSemiring(), iEps, oEps);
+      }
+    }
+  }
+
+  private static void initResultStates(Fst fst, MutableFst res, MutableState[] oldToNewStateMap, State[] newToOldStateMap) {
+    for (int i = 0; i < fst.getStateCount(); i++) {
+      State state = fst.getState(i);
       // Add non-epsilon arcs
       MutableState newState = res.newState();
-      newState.setFinalWeight(s.getFinalWeight());
-      oldToNewStateMap[s.getId()] = newState;
-      newToOldStateMap[newState.getId()] = s;
+      newState.setFinalWeight(state.getFinalWeight());
+      oldToNewStateMap[state.getId()] = newState;
+      newToOldStateMap[newState.getId()] = state;
       if (newState.getId() == fst.getStartState().getId()) {
         res.setStart(newState);
       }
     }
+  }
 
-    for (int i = 0; i < numStates; i++) {
-      State s = fst.getState(i);
-      // Add non-epsilon arcs
-      MutableState newState = oldToNewStateMap[s.getId()];
-      int numArcs = s.getArcCount();
-      for (int j = 0; j < numArcs; j++) {
-        Arc a = s.getArc(j);
-        if ((a.getIlabel() != iEps) || (a.getOlabel() != oEps)) {
-          MutableState resNextState = oldToNewStateMap[a.getNextState().getId()];
-          res.addArc(newState, a.getIlabel(), a.getOlabel(), resNextState, a.getWeight());
-        }
-      }
+  /**
+   * Put a new state in the epsilon closure
+   */
+  private static void put(State fromState, State toState, double weight, HashMap<Integer,Double>[] closure) {
+    HashMap<Integer,Double> maybe = closure[fromState.getId()];
+    if (maybe == null) {
+      maybe = new HashMap<Integer,Double>();
+      closure[fromState.getId()] = maybe;
+    }
+    maybe.put(toState.getId(), weight);
+  }
 
-      // Compute e-Closure
-      if (cl[s.getId()] == null) {
-        calcClosure(fst, s, cl, semiring, iEps, oEps);
-      }
+  /**
+   * Add a state in the epsilon closure
+   */
+  private static void add(State fromState, State toState, double weight, HashMap<Integer,Double>[] closure, Semiring semiring) {
+    Double old = getPathWeight(fromState, toState, closure);
+    if (old == null) {
+      put(fromState, toState, weight, closure);
+    } else {
+      put(fromState, toState, semiring.plus(weight, old), closure);
     }
 
-    // augment fst with arcs generated from epsilon moves.
-    numStates = res.getStateCount();
-    for (int i = 0; i < numStates; i++) {
-      MutableState s = res.getState(i);
-      State oldState = newToOldStateMap[s.getId()];
-      if (cl[oldState.getId()] != null) {
-        for (Integer pathFinalStateIndex : cl[oldState.getId()].keySet()) {
+  }
 
-          State s1 = fst.getState(pathFinalStateIndex);
-          if (semiring.isNotZero(s1.getFinalWeight())) {
-            s.setFinalWeight(semiring.plus(s.getFinalWeight(),
-                                           semiring.times(getPathWeight(oldState, s1, cl),
-                                                          s1.getFinalWeight())));
-          }
-          int numArcs = s1.getArcCount();
-          for (int j = 0; j < numArcs; j++) {
-            Arc a = s1.getArc(j);
-            if ((a.getIlabel() != iEps) || (a.getOlabel() != oEps)) {
-              double weight = semiring.times(a.getWeight(), getPathWeight(oldState, s1, cl));
-              MutableState nextState = oldToNewStateMap[a.getNextState().getId()];
-              res.addArc(s, a.getIlabel(), a.getOlabel(), nextState, weight);
-            }
-          }
+  /**
+   * Calculate the epsilon closure
+   */
+  private static void calculateClosure(Fst fst, State state, HashMap<Integer,Double>[] closure, Semiring semiring, int iEps, int oEps) {
+
+    for (int j = 0; j < state.getArcCount(); j++) {
+      Arc arc = state.getArc(j);
+      if ((arc.getIlabel() != iEps) || (arc.getOlabel() != oEps)) {
+        continue;
+      }
+      int nextStateId = arc.getNextState().getId();
+      if (closure[nextStateId] == null) {
+        calculateClosure(fst, arc.getNextState(), closure, semiring, iEps, oEps);
+      }
+      HashMap<Integer,Double> closureEntry = closure[nextStateId];
+      if (closureEntry != null) {
+        for (Integer pathFinalStateIndex : closureEntry.keySet()) {
+          State pathFinalState = fst.getState(pathFinalStateIndex);
+          Double prevPathWeight = getPathWeight(arc.getNextState(), pathFinalState, closure);
+          Preconditions.checkNotNull(prevPathWeight, "prev arc %s never set in closure", arc);
+          double newPathWeight = semiring.times(prevPathWeight, arc.getWeight());
+          add(state, pathFinalState, newPathWeight, closure, semiring);
         }
       }
+      add(state, arc.getNextState(), arc.getWeight(), closure, semiring);
     }
+  }
 
-    Connect.apply(res);
-    ArcSort.sortByInput(res);
-
-    return res;
+  /**
+   * Get an epsilon path's cost in epsilon closure
+   */
+  @Nullable
+  private static Double getPathWeight(State inState, State outState, HashMap<Integer,Double>[] closure) {
+    if (closure[inState.getId()] != null) {
+      return closure[inState.getId()].get(outState.getId());
+    }
+    return null;
   }
 }

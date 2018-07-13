@@ -17,6 +17,9 @@
 package com.github.steveash.jopenfst;
 
 /**
+ * Immutable version of a symbol table; this in particular is effectively immutable because no one
+ * can change it and it is safely published
+ * NOTE: All Immutable* classes are thread safe
  * @author Steve Ash
  */
 public class ImmutableSymbolTable extends AbstractSymbolTable {

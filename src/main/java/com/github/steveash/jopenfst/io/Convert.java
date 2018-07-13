@@ -16,15 +16,6 @@
 
 package com.github.steveash.jopenfst.io;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.CharSource;
-import com.google.common.io.Files;
-import com.google.common.io.Resources;
-
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
@@ -35,7 +26,14 @@ import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
-
+import com.google.common.base.Charsets;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.io.CharSource;
+import com.google.common.io.Files;
+import com.google.common.io.Resources;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
@@ -47,11 +45,16 @@ import java.net.URL;
 import java.util.HashMap;
 
 import static com.google.common.io.Resources.asCharSource;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * Provides the required functionality in order to convert from/to openfst's text format
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * NOTE that the original CMU implementation of this assumed that the symbols themselves were in the fst text format
+ * and NOT the symbol ids (as described in the AT&T spec). There is a static flag (yuck, I know) to control whether
+ * you expect symbols or symbol ids in the input/output text files (defaulting to expecting the symbols themselves
+ *
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class Convert {
 
@@ -60,10 +63,25 @@ public class Convert {
   private static final String FST_TXT = ".fst.txt";
   private static final String STATES_SYMS = ".states.syms";
 
+  // if true, then expect the tokens in the text format to be integer symbol ids and not the symbols themselves
+  private static boolean useSymbolIdsInText = false;
+
   /**
-   * Default private Constructor.
+   * if true, then expects that the tokens in the input and output symbols are the integer ids of the token and not
+   * the token itself
+   * @return
    */
-  private Convert() {
+  public static boolean isUseSymbolIdsInText() {
+    return useSymbolIdsInText;
+  }
+
+  /**
+   * If true then when importing an FST text file, it interprets the states as ids from the isymb/osymb tables
+   * instead of the symbol values themselves (the strings)
+   * @param useSymbolIdsInText
+   */
+  public static void setUseSymbolIdsInText(boolean useSymbolIdsInText) {
+    Convert.useSymbolIdsInText = useSymbolIdsInText;
   }
 
   /**
@@ -116,8 +134,15 @@ public class Convert {
         int numArcs = s.getArcCount();
         for (int j = 0; j < numArcs; j++) {
           Arc arc = s.getArc(j);
-          String isym = inputIds.keyForId(arc.getIlabel());
-          String osym = outputIds.keyForId(arc.getOlabel());
+          String isym;
+          String osym;
+          if (useSymbolIdsInText) {
+            isym = Integer.toString(arc.getIlabel());
+            osym = Integer.toString(arc.getOlabel());
+          } else {
+            isym = inputIds.keyForId(arc.getIlabel());
+            osym = outputIds.keyForId(arc.getOlabel());
+          }
 
           out.println(s.getId() + "\t" + arc.getNextState().getId()
                       + "\t" + isym + "\t" + osym + "\t"
@@ -143,15 +168,10 @@ public class Convert {
       return;
     }
 
-    try {
-      FileWriter file = new FileWriter(filename);
-      PrintWriter out = new PrintWriter(file);
-
+    try (PrintWriter out = new PrintWriter(new FileWriter(filename))) {
       for (ObjectIntCursor<String> sym : syms) {
         out.println(sym.key + "\t" + sym.value);
       }
-
-      out.close();
     } catch (IOException e) {
       throw Throwables.propagate(e);
     }
@@ -186,7 +206,9 @@ public class Convert {
       ImmutableList<String> lines = cs.readLines();
       MutableSymbolTable newTable = new MutableSymbolTable();
       for (String line : lines) {
-
+        if (isBlank(line)) {
+          continue;
+        }
         String[] tokens = line.split("\\s+");
         String sym = tokens[0];
         Integer index = Integer.parseInt(tokens[1]);
@@ -281,52 +303,78 @@ public class Convert {
 
     try (BufferedReader br = fstSource.openBufferedStream()) {
       boolean firstLine = true;
-      String strLine;
+      String line;
       HashMap<Integer, MutableState> stateMap = new HashMap<>();
-
-      while ((strLine = br.readLine()) != null) {
-        String[] tokens = strLine.split("\\t");
-        Integer inputStateId;
-        if (ssyms == null) {
-          inputStateId = Integer.parseInt(tokens[0]);
-        } else {
-          inputStateId = ssyms.get(tokens[0]);
+      int lineNo = 0;
+      while ((line = br.readLine()) != null) {
+        lineNo += 1;
+        if (isBlank(line)) {
+          continue;
         }
-        MutableState inputState = stateMap.get(inputStateId);
-        if (inputState == null) {
-          inputState = new MutableState(semiring.zero());
-          fst.setState(inputStateId, inputState);
-          stateMap.put(inputStateId, inputState);
-        }
-
-        if (firstLine) {
-          firstLine = false;
-          fst.setStart(inputState);
-        }
-
-        if (tokens.length > 2) {
-          Integer nextStateId;
+        try {
+          String[] tokens = line.split("\\t");
+          Integer inputStateId;
           if (ssyms == null) {
-            nextStateId = Integer.parseInt(tokens[1]);
+            inputStateId = Integer.parseInt(tokens[0]);
           } else {
-            nextStateId = ssyms.get(tokens[1]);
+            inputStateId = ssyms.get(tokens[0]);
+          }
+          MutableState inputState = stateMap.get(inputStateId);
+          if (inputState == null) {
+            inputState = new MutableState(semiring.zero());
+            fst.setState(inputStateId, inputState);
+            stateMap.put(inputStateId, inputState);
           }
 
-          MutableState nextState = stateMap.get(nextStateId);
-          if (nextState == null) {
-            nextState = new MutableState(semiring.zero());
-            fst.setState(nextStateId, nextState);
-            stateMap.put(nextStateId, nextState);
+          if (firstLine) {
+            firstLine = false;
+            fst.setStart(inputState);
           }
-          // Adding arc
-          int iLabel = isyms.getOrAdd(tokens[2]);
-          int oLabel = osyms.getOrAdd(tokens[3]);
-          double arcWeight = Double.parseDouble(tokens[4]);
-          fst.addArc(inputState, iLabel, oLabel, nextState, arcWeight);
-        } else {
-          // This is a final weight
-          double finalWeight = Double.parseDouble(tokens[1]);
-          inputState.setFinalWeight(finalWeight);
+
+          if (tokens.length > 2) {
+            Integer nextStateId;
+            if (ssyms == null) {
+              nextStateId = Integer.parseInt(tokens[1]);
+            } else {
+              nextStateId = ssyms.get(tokens[1]);
+            }
+
+            MutableState nextState = stateMap.get(nextStateId);
+            if (nextState == null) {
+              nextState = new MutableState(semiring.zero());
+              fst.setState(nextStateId, nextState);
+              stateMap.put(nextStateId, nextState);
+            }
+            /// Adding arc
+            int iLabel;
+            int oLabel;
+            if (useSymbolIdsInText) {
+              iLabel = Integer.parseInt(tokens[2]);
+              oLabel = Integer.parseInt(tokens[3]);
+            } else {
+              iLabel = isyms.getOrAdd(tokens[2]);
+              oLabel = osyms.getOrAdd(tokens[3]);
+            }
+            double arcWeight;
+            if (tokens.length >= 5) {
+              arcWeight = Double.parseDouble(tokens[4]);
+            } else {
+              arcWeight = semiring.one();
+            }
+            fst.addArc(inputState, iLabel, oLabel, nextState, arcWeight);
+          } else {
+            // This is a final weight
+            double finalWeight;
+            if (tokens.length >= 2) {
+              finalWeight = Double.parseDouble(tokens[1]);
+            } else {
+              finalWeight = semiring.one();
+            }
+            inputState.setFinalWeight(finalWeight);
+          }
+        } catch (RuntimeException e) {
+          throw new RuntimeException("Problem converting and parsing line " + lineNo + " from FST input file. Line: " +
+              line, e);
         }
       }
     } catch (IOException e) {

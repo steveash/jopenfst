@@ -16,19 +16,23 @@
 
 package com.github.steveash.jopenfst;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.utils.FstUtils;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 
 import java.util.Iterator;
 
 /**
+ * The base abstract implementation which uses carrotsearch primitive maps for optimized mappings of
+ * int -> string and vice versa.
+ * This implementation is effectively thread safe if no mutating operations are performed after
+ * construction.
+ *
  * @author Steve Ash
  */
 public abstract class AbstractSymbolTable implements SymbolTable {
@@ -41,6 +45,11 @@ public abstract class AbstractSymbolTable implements SymbolTable {
         }
       };
 
+  /**
+   * Returns the current max id mapped in this symbol table or 0 if this has no mappings
+   * @param table
+   * @return
+   */
   public static int maxIdIn(SymbolTable table) {
     int max = 0;
     for (ObjectIntCursor<String> cursor : table) {

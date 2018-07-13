@@ -1,0 +1,7 @@
+0	Infinity
+1	Infinity
+2	2.0
+0	1	q	f	1.0
+0	2	r	h	3.0
+1	2	s	g	2.5
+2	2	s	j	1.5

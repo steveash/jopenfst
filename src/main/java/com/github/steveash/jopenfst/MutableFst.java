@@ -16,27 +16,27 @@
 
 package com.github.steveash.jopenfst;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-
 import com.github.steveash.jopenfst.semiring.Semiring;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
 import com.github.steveash.jopenfst.utils.FstUtils;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
-import javax.annotation.Nullable;
-
 import static com.github.steveash.jopenfst.utils.FstUtils.symbolTableEffectiveCopy;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
- * A mutable finite state transducer implementation.
+ * A mutable finite state transducer implementation that allows you to build WFSTs via the API.
+ * This is not thread safe; convert to an ImmutableFst if you need to share across threads.
+ * @see ImmutableFst
  */
 public class MutableFst implements Fst {
 
@@ -51,6 +51,12 @@ public class MutableFst implements Fst {
     return copy;
   }
 
+  /**
+   * Make a deep copy of the given FST. The symbol tables are "effectively deep copied" meaning that they will
+   * take advantage of any immutable tables (using the UnionSymbolTable) to avoid doing a large deep copy.
+   * @param fst
+   * @return
+   */
   public static MutableFst copyFrom(Fst fst) {
     MutableFst copy = emptyWithCopyOfSymbols(fst);
     // build up states
@@ -76,6 +82,55 @@ public class MutableFst implements Fst {
     return copy;
   }
 
+  /**
+   * This returns a deep copy of the given FST using the given symbol tables. The resulting MutableFST returned will
+   * have the exact given input/output symbol tables and all arc I/O ids will be translated to these provided symbol
+   * tables. This is useful when you want to load an FST from a text file but then force/translate it to use a
+   * particular symbol table.
+   *
+   * NOTE the passed in input/output symbol tables will be the owned symbol tables by the resulting FST; so if you are
+   * sharing them be sure that you intend for this to happen; it is recommended that you use Frozen writeable symbol
+   * tables to avoid accidents
+   * @param fst
+   * @return
+   */
+  public static MutableFst copyAndTranslateSymbols(Fst fst, WriteableSymbolTable newInputSymbols,
+                                                   WriteableSymbolTable newOutputSymbols) {
+    SymbolTable.InvertedSymbolTable origInput = fst.getInputSymbols().invert();
+    SymbolTable.InvertedSymbolTable origOutput = fst.getOutputSymbols().invert();
+    MutableFst copy = new MutableFst(fst.getSemiring(), newInputSymbols, newOutputSymbols);
+    if (fst.isUsingStateSymbols()) {
+      copy.useStateSymbols(new MutableSymbolTable(fst.getStateSymbols()));
+    }
+    // build up states
+    for (int i = 0; i < fst.getStateCount(); i++) {
+      State source = fst.getState(i);
+      MutableState target = new MutableState(source.getArcCount());
+      target.setFinalWeight(source.getFinalWeight());
+      copy.setState(i, target);
+    }
+    // build arcs now that we have target state refs
+    for (int i = 0; i < fst.getStateCount(); i++) {
+      State source = fst.getState(i);
+      MutableState target = copy.getState(i);
+      for (int j = 0; j < source.getArcCount(); j++) {
+        Arc sarc = source.getArc(j);
+        MutableState nextTargetState = copy.getState(sarc.getNextState().getId());
+        String origInputSymbol = origInput.keyForId(sarc.getIlabel());
+        String origOutputSymbol = origOutput.keyForId(sarc.getOlabel());
+        MutableArc tarc = new MutableArc(newInputSymbols.getOrAdd(origInputSymbol),
+            newOutputSymbols.getOrAdd(origOutputSymbol),
+            sarc.getWeight(),
+            nextTargetState
+        );
+        target.addArc(tarc);
+      }
+    }
+    MutableState newStart = copy.getState(fst.getStartState().getId());
+    copy.setStart(newStart);
+    return copy;
+  }
+
   private final Semiring semiring;
   private final ArrayList<MutableState> states;
   private MutableState start;
@@ -88,7 +143,7 @@ public class MutableFst implements Fst {
   }
 
   private static Semiring makeDefaultRing() {
-    return new TropicalSemiring();
+    return TropicalSemiring.INSTANCE;
   }
 
   /**
@@ -368,16 +423,8 @@ public class MutableFst implements Fst {
     return outputSymbols.size();
   }
 
-  public void setInputSymbolsAsCopyFrom(Fst sourceInputSymbols) {
-    this.inputSymbols = symbolTableEffectiveCopy(sourceInputSymbols.getInputSymbols());
-  }
-
   public void setInputSymbolsAsCopyFromThatOutput(Fst that) {
     this.inputSymbols = symbolTableEffectiveCopy(that.getOutputSymbols());
-  }
-
-  public void setOutputSymbolsAsCopyFrom(Fst sourceOutputSymbols) {
-    this.outputSymbols = symbolTableEffectiveCopy(sourceOutputSymbols.getOutputSymbols());
   }
 
   public void setOutputSymbolsAsCopyFromThatInput(Fst that) {
@@ -400,13 +447,6 @@ public class MutableFst implements Fst {
   @Override
   public int lookupOutputSymbol(String symbol) {
     return outputSymbols.get(symbol);
-  }
-
-  @Override
-  public void throwIfThisOutputIsNotThatInput(Fst that) {
-    if (!FstUtils.symbolTableEquals(outputSymbols, that.getInputSymbols())) {
-      throw new IllegalArgumentException("Symbol tables don't match, cant compose " + this + " to " + that);
-    }
   }
 
   @Override

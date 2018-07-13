@@ -16,7 +16,9 @@
 
 package com.github.steveash.jopenfst.operations;
 
+import com.github.steveash.jopenfst.FrozenSymbolTable;
 import com.github.steveash.jopenfst.ImmutableFst;
+import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.semiring.Semiring;
 
 /**
@@ -31,12 +33,16 @@ public class PrecomputedComposeFst {
   private final String eps1;
   private final String eps2;
   private final ImmutableFst precomputed;
+  private final FrozenSymbolTable inputSyms;
+  private final ImmutableFst filterFst;
 
-  PrecomputedComposeFst(String eps1, String eps2, ImmutableFst precomputed, Semiring semiring) {
+  PrecomputedComposeFst(String eps1, String eps2, ImmutableFst precomputed, Semiring semiring, ImmutableFst filterFst) {
     this.eps1 = eps1;
     this.eps2 = eps2;
     this.precomputed = precomputed;
     this.semiring = semiring;
+    this.inputSyms = new FrozenSymbolTable(precomputed.getInputSymbols());
+    this.filterFst = filterFst;
   }
 
   ImmutableFst getFst() {
@@ -53,5 +59,29 @@ public class PrecomputedComposeFst {
 
   Semiring getSemiring() {
     return semiring;
+  }
+
+  ImmutableFst getFilterFst() {
+    return filterFst;
+  }
+
+  /**
+   * Returns the precomputed FST's input symbol table as a frozen table; for composes A o B this should be
+   * used as the output symbol table of A and you should be careful not to require any symbols that the B won't have
+   * @return
+   */
+  public FrozenSymbolTable getFstInputSymbolsAsFrozen() {
+    return inputSyms;
+  }
+
+  /**
+   * Create a new outer (input) mutable FST that you will use to compute the FST that will be composed with this
+   * precomputed one; note that the resulting mutable (empty) FST will have FROZEN input/output symbols and thus you
+   * cannot add OOV symbols.
+   *
+   * @return
+   */
+  public MutableFst createNewOuterFst() {
+    return new MutableFst(semiring, inputSyms, inputSyms);
   }
 }

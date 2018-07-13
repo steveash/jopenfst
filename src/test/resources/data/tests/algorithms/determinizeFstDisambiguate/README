@@ -1,0 +1,4 @@
+this example is the one for transducer determinization that I made up;
+it is similar to determinizeT2 but the input FST is non-functional because there are two paths for a,b,c with
+
+this uses openfst det_type=disambiguate param, which does only retains the shortest a,b,c path (which is p,r,u)

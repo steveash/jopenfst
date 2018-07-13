@@ -19,29 +19,16 @@ package com.github.steveash.jopenfst;
 import com.github.steveash.jopenfst.utils.FstUtils;
 
 /**
- * The fst's arc implementation.
+ * A mutable FST's arc implementation.
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class MutableArc implements Arc {
 
-  // Arc's weight
   private double weight;
-
-  // input label
   private int iLabel;
-
-  // output label
   private int oLabel;
-
-  // next state's id
   private MutableState nextState;
-
-  /**
-   * Default Constructor
-   */
-  public MutableArc() {
-  }
 
   /**
    * Arc Constructor

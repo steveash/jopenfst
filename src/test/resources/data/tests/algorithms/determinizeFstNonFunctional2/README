@@ -1,0 +1,3 @@
+this example is the one for transducer determinization that I made up
+it's an extension of determinizeFstNonFunctional by adding another set of multiple step paths that have
+ambiguous input sequences. There will be different results for non functional vs disambiguate

@@ -21,41 +21,104 @@ import com.github.steveash.jopenfst.semiring.Semiring;
 import javax.annotation.Nullable;
 
 /**
- * Client interface for an FST
+ * Client interface for an FST abstracting either the mutable or immutable FST
  * @author Steve Ash
  */
 public interface Fst {
 
   String EPS = "<eps>";
 
+  /**
+   * The start state in the FST; there must be exactly one
+   * @return
+   */
   State getStartState();
 
+  /**
+   * The semiring used to construct this FST. Note that certain operations can work on separate semirings, but
+   * the ring used for construction is important for interpreting edge/state weights.
+   * @return
+   */
   Semiring getSemiring();
 
+  /**
+   * The total number of states in the FST
+   * @return
+   */
   int getStateCount();
 
+  /**
+   * Get the FST state and the ith index
+   * @param index
+   * @return
+   */
   State getState(int index);
 
+  /**
+   * Get the FST state corresponding to the given state label or throws an IllegalArgumentException if state labels
+   * are not being used in this FST
+   * @param name
+   * @return
+   */
   State getState(String name);
 
+  /**
+   * Return the symbol table for the input symbols
+   * @return
+   */
   SymbolTable getInputSymbols();
 
+  /**
+   * Return the symbol table for the output symbols
+   * @return
+   */
   SymbolTable getOutputSymbols();
 
+  /**
+   * Return the symbol table for the state symbols or null if state symbols are not being used
+   * @return
+   */
   @Nullable
   SymbolTable getStateSymbols();
 
+  /**
+   * Returns true if this FST is using state symbols; iff this is true then `getStateSymbols() != null`
+   * @return
+   */
   boolean isUsingStateSymbols();
 
+  /**
+   * Shortcut method for `getInputSymbols().getSize()`
+   * @return
+   */
   int getInputSymbolCount();
 
+  /**
+   * Shortcut methods for `getOutputSymbolCount().getSize()`
+   * @return
+   */
   int getOutputSymbolCount();
 
+  /**
+   * Returns the smybol index (mapping) for the given input symbol or throws IllegalArgumentException if
+   * no mapping exists for this symbol
+   * @see SymbolTable#get(String)
+   * @param symbol
+   * @return
+   */
   int lookupInputSymbol(String symbol);
 
+  /**
+   * Returns the smybol index (mapping) for the given output symbol or throws IllegalArgumentException if
+   * no mapping exists for this symbol
+   * @see SymbolTable#get(String)
+   * @param symbol
+   * @return
+   */
   int lookupOutputSymbol(String symbol);
 
-  void throwIfThisOutputIsNotThatInput(Fst that);
-
+  /**
+   * throws an exception if the FST is constructed in an invalid state
+   */
   void throwIfInvalid();
 }

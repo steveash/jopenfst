@@ -26,15 +26,9 @@ import java.util.ArrayList;
 /**
  * Extend an Fst to a single final state and undo operations.
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class ExtendFinal {
-
-  /**
-   * Default Contructor
-   */
-  private ExtendFinal() {
-  }
 
   /**
    * Creates a new FST that is a copy of the existing with a new signle final state
@@ -49,28 +43,31 @@ public class ExtendFinal {
     fst.throwIfInvalid();
     MutableFst copy = MutableFst.copyFrom(fst);
     Semiring semiring = copy.getSemiring();
-    ArrayList<MutableState> fStates = new ArrayList<>();
-
-    int numStates = copy.getStateCount();
-    for (int i = 0; i < numStates; i++) {
-      MutableState s = copy.getState(i);
-      if (semiring.isNotZero(s.getFinalWeight())) {
-        fStates.add(s);
-      }
-    }
+    ArrayList<MutableState> resultStates = initResultStates(copy, semiring);
 
     // Add a new single final
     MutableState newFinal = new MutableState(semiring.one());
     copy.addState(newFinal);
     int epsILabel = copy.getInputSymbols().get(Fst.EPS);
     int epsOLabel = copy.getOutputSymbols().get(Fst.EPS);
-    for (MutableState s : fStates) {
+    for (MutableState s : resultStates) {
       // add epsilon transition from the old final to the new one
       copy.addArc(s, epsILabel, epsOLabel, newFinal, s.getFinalWeight());
       // set old state's weight to zero
       s.setFinalWeight(semiring.zero());
     }
     return copy;
+  }
+
+  private static ArrayList<MutableState> initResultStates(MutableFst copy, Semiring semiring) {
+    ArrayList<MutableState> resultStates = new ArrayList<>();
+    for (int i = 0; i < copy.getStateCount(); i++) {
+      MutableState state = copy.getState(i);
+      if (semiring.isNotZero(state.getFinalWeight())) {
+        resultStates.add(state);
+      }
+    }
+    return resultStates;
   }
 
 }

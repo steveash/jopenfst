@@ -14,36 +14,32 @@
  * limitations under the License.
  */
 
-/**
- *
- */
+
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
-
+import com.github.steveash.jopenfst.utils.FstUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class NShortestPathsTest {
 
   @Test
   public void testNShortestPaths() {
 
-    MutableFst fst = Convert.importFst("data/tests/algorithms/shortestpath/A",
-                                       new TropicalSemiring());
-    MutableFst nsp = Convert.importFst("data/tests/algorithms/shortestpath/nsp",
-                                       new TropicalSemiring());
+    MutableFst fst = Convert.importFst("data/tests/algorithms/shortestpath/A", TropicalSemiring.INSTANCE);
+    MutableFst nsp = Convert.importFst("data/tests/algorithms/shortestpath/nsp", TropicalSemiring.INSTANCE);
 
     MutableFst detFst = Determinize.apply(fst);
     Fst fstNsp = NShortestPaths.apply(detFst, 6);
-
-    assertTrue(nsp.equals(fstNsp));
+    Convert.export(fstNsp, "shortest-export");
+    assertTrue(FstUtils.fstEquals(nsp, fstNsp, FstUtils.LOG_REPORTER));
   }
 }

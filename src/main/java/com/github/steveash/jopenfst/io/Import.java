@@ -25,7 +25,7 @@ import java.io.IOException;
 /**
  * Provides a command line utility to convert an Fst in openfst's text format to java binary fst model
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class Import {
 
@@ -51,7 +51,7 @@ public class Import {
       System.exit(1);
     }
 
-    MutableFst fst = Convert.importFst(args[0], new TropicalSemiring());
+    MutableFst fst = Convert.importFst(args[0], TropicalSemiring.INSTANCE);
 
     // Serialize the java fst model to disk
     System.out.println("Saving as binary java fst model...");

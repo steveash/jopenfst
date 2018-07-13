@@ -19,9 +19,9 @@ package com.github.steveash.jopenfst.operations;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
-
 import org.junit.Test;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ArcSortTest {
@@ -32,7 +32,7 @@ public class ArcSortTest {
    * @return the created fst
    */
   private MutableFst createOsorted() {
-    MutableFst fst = new MutableFst(new TropicalSemiring());
+    MutableFst fst = new MutableFst(TropicalSemiring.INSTANCE);
 
     MutableState s1 = fst.newState(0.f);
     MutableState s2 = fst.newState(0.f);
@@ -59,7 +59,7 @@ public class ArcSortTest {
    * @return the created fst
    */
   private MutableFst createIsorted() {
-    MutableFst fst = new MutableFst(new TropicalSemiring());
+    MutableFst fst = new MutableFst(TropicalSemiring.INSTANCE);
 
     MutableState s1 = fst.newState(0.f);
     MutableState s2 = fst.newState(0.f);
@@ -86,7 +86,7 @@ public class ArcSortTest {
    * @return the created fst
    */
   private MutableFst createUnsorted() {
-    MutableFst fst = new MutableFst(new TropicalSemiring());
+    MutableFst fst = new MutableFst(TropicalSemiring.INSTANCE);
 
     MutableState s1 = fst.newState(0.f);
     MutableState s2 = fst.newState(0.f);
@@ -115,6 +115,8 @@ public class ArcSortTest {
     assertTrue(!fst1.equals(fst2));
     ArcSort.sortBy(fst1, new ILabelCompare());
     assertTrue(fst1.equals(fst2));
+    assertTrue(ArcSort.isSorted(fst1.getState(0), ILabelCompare.INSTANCE));
+    assertFalse(ArcSort.isSorted(fst1.getState(0), OLabelCompare.INSTANCE));
 
     // Output label sort test
     fst1 = createUnsorted();
@@ -122,7 +124,8 @@ public class ArcSortTest {
     assertTrue(!fst1.equals(fst2));
     ArcSort.sortBy(fst1, new OLabelCompare());
     assertTrue(fst1.equals(fst2));
+    assertFalse(ArcSort.isSorted(fst1.getState(0), ILabelCompare.INSTANCE));
+    assertTrue(ArcSort.isSorted(fst1.getState(0), OLabelCompare.INSTANCE));
 
   }
-
 }

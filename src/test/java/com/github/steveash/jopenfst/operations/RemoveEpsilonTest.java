@@ -21,12 +21,11 @@ import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
 import com.github.steveash.jopenfst.semiring.ProbabilitySemiring;
 import com.github.steveash.jopenfst.utils.FstUtils;
-
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class RemoveEpsilonTest {
 

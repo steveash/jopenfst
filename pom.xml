@@ -22,8 +22,8 @@
   <groupId>com.github.steveash.jopenfst</groupId>
   <artifactId>jopenfst</artifactId>
   <name>jopenfst</name>
-  <version>0.1.1.ALPHA</version>
-  <description>Java port of the OpenFST library; forked from the CMU Sphinx project</description>
+  <version>0.2.0</version>
+  <description>Partial Java port of the OpenFST library; forked from the CMU Sphinx project</description>
   <packaging>jar</packaging>
 
   <url>https://github.com/steveash/jopenfst</url>
@@ -124,8 +124,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.1</version>
         <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
+          <source>1.8</source>
+          <target>1.8</target>
         </configuration>
       </plugin>
       <plugin>
@@ -163,6 +163,9 @@
             <goals>
               <goal>jar</goal>
             </goals>
+	    <configuration>
+	      <additionalparam>${javadoc.opts}</additionalparam>
+	    </configuration>
           </execution>
         </executions>
       </plugin>
@@ -173,6 +176,15 @@
     </plugins>
   </build>
   <profiles>
+    <profile>
+      <id>java8-doclint-disabled</id>
+      <activation>
+        <jdk>[1.8,)</jdk>
+      </activation>
+      <properties>
+        <javadoc.opts>-Xdoclint:none</javadoc.opts>
+      </properties>
+    </profile>
 
     <profile>
       <id>javadoc</id>

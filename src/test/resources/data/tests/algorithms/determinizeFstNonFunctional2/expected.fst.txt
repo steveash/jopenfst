@@ -1,0 +1,21 @@
+0       1       a       <eps>   1
+0       2       b       <eps>   1
+1       3       b       p       1
+1       4       c       q       4
+2       5       c       <eps>   3
+3       6       c       r       4
+3       7       d       s       6
+4       7       d       t       5
+4       10       <eps>   w       2
+5       8       d       <eps>   4
+6       10       <eps>   u       1
+7       10       <eps>   v       1
+10
+8       9      <eps>   <eps>   6
+9      11      <eps>   s
+9      12      <eps>   t       4
+11      13      <eps>   t
+12      14      <eps>   s
+13      15      <eps>   u
+14      15      <eps>   v
+15      10       <eps>   v

@@ -55,8 +55,12 @@ public class Connect {
     }
 
     ArrayList<MutableState> toDelete = new ArrayList<>();
+    int startId = fst.getStartState().getId();
     for (int i = 0; i < numStates; i++) {
       MutableState s = fst.getState(i);
+      if (s.getId() == startId) {
+        continue; // cant delete the start state
+      }
       if (!accessible.contains(s.getId()) || !coaccessible.contains(s.getId())) {
         toDelete.add(s);
       }

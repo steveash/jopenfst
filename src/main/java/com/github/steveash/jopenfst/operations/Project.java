@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-/**
- *
- */
+
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.MutableArc;
@@ -26,15 +24,9 @@ import com.github.steveash.jopenfst.MutableState;
 /**
  * Project operation.
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class Project {
-
-  /**
-   * Default Constructor
-   */
-  private Project() {
-  }
 
   /**
    * Projects an fst onto its domain or range by either copying each arc's input label to its output label or vice
@@ -47,13 +39,11 @@ public class Project {
       fst.setInputSymbolsAsCopyFromThatOutput(fst);
     }
 
-    int numStates = fst.getStateCount();
-    for (int i = 0; i < numStates; i++) {
-      MutableState s = fst.getState(i);
+    for (int i = 0; i < fst.getStateCount(); i++) {
+      MutableState state = fst.getState(i);
       // Immutable fsts hold an additional (null) arc
-      int numArcs = s.getArcCount();
-      for (int j = 0; j < numArcs; j++) {
-        MutableArc a = s.getArc(j);
+      for (int j = 0; j < state.getArcCount(); j++) {
+        MutableArc a = state.getArc(j);
         if (pType == ProjectType.INPUT) {
           a.setOlabel(a.getIlabel());
         } else if (pType == ProjectType.OUTPUT) {

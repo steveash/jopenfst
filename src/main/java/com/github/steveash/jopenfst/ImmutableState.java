@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-/**
- *
- */
 package com.github.steveash.jopenfst;
 
-import com.google.common.collect.ImmutableList;
-
 import com.github.steveash.jopenfst.utils.FstUtils;
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
 /**
- * Immutable version of the state
+ * Immutable version of an FST state object
+ * NOTE: All Immutable* classes are thread safe
+ * @author Steve Ash
  */
 public class ImmutableState implements State {
 
@@ -34,11 +32,11 @@ public class ImmutableState implements State {
   private final double finalWeight;
   private final ImmutableList<ImmutableArc> arcs;
 
-  public ImmutableState(State copyFrom) {
+  ImmutableState(State copyFrom) {
     this(copyFrom.getId(), copyFrom.getFinalWeight(), copyFrom.getArcs());
   }
 
-  public ImmutableState(int id, double finalWeight, List<? extends Arc> copyFrom) {
+  ImmutableState(int id, double finalWeight, List<? extends Arc> copyFrom) {
     this.id = id;
     this.finalWeight = finalWeight;
     ImmutableList.Builder<ImmutableArc> builder = ImmutableList.builder();

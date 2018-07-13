@@ -16,19 +16,20 @@
 
 package com.github.steveash.jopenfst;
 
-import com.google.common.collect.Lists;
-
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 
 /**
- * A mutable symbol table to record mappings between symbols and ids
+ * A mutable symbol table to record mappings between symbols and ids; This is the typical
+ * implementation of a WriteableSymbolTable (yes the naming is unfortunate)
  *
  * @author Steve Ash
  */
 public class MutableSymbolTable extends AbstractSymbolTable implements WriteableSymbolTable {
 
+  // the next available id in the symbol table
   private int nextId;
 
   public MutableSymbolTable() {
@@ -40,6 +41,10 @@ public class MutableSymbolTable extends AbstractSymbolTable implements Writeable
     this.nextId = nextId;
   }
 
+  /**
+   * Construct a new mutable symbol table from the given symbol table
+   * @param copyFrom
+   */
   public MutableSymbolTable(SymbolTable copyFrom) {
     super(copyFrom);
 
@@ -64,6 +69,13 @@ public class MutableSymbolTable extends AbstractSymbolTable implements Writeable
     }
   }
 
+  /**
+   * Remove the mapping for the given id. Note that the newly assigned 'next' ids are monotonically
+   * increasing, so removing one id does not free it up to be assigned in future symbol table adds; there
+   * will just be holes in the symbol mappings
+   * @see #trimIds() for a way to compact the assigned ids
+   * @param id
+   */
   public void remove(int id) {
     String symbol = invert().keyForId(id);
     idToSymbol.remove(id);
@@ -71,7 +83,9 @@ public class MutableSymbolTable extends AbstractSymbolTable implements Writeable
   }
 
   /**
-   * If there are ids to reclaim at the end, then this will do this (useful after a compaction/connect of the fst)
+   * If there are ids to reclaim at the end, then this will do this. Certainly be careful if you are
+   * doing operations where it is expected that the id mappings will be consistent across multiple FSTs
+   * such as in compose where you want the output of A to be equal to the input of B
    */
   public void trimIds() {
     // typical case shortcut
@@ -114,9 +128,6 @@ public class MutableSymbolTable extends AbstractSymbolTable implements Writeable
     }
   }
 
-  /**
-   * Returns the new id or the existing id if it already existed
-   */
   @Override
   public int getOrAdd(String symbol) {
     int thisId = nextId;
@@ -129,15 +140,6 @@ public class MutableSymbolTable extends AbstractSymbolTable implements Writeable
     } else {
       return symbolToId.get(symbol);
     }
-  }
-
-  @Override
-  public int addNewUnique(String prefix) {
-    int thisId = nextId;
-    String symbol = "<" + prefix + "$$_" + thisId + ">";
-    putMappingOrThrow(symbol, thisId);
-    nextId += 1;
-    return thisId;
   }
 
   @Override

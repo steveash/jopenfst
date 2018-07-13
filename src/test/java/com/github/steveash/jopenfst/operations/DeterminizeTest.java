@@ -14,34 +14,27 @@
  * limitations under the License.
  */
 
-/**
- *
- */
+
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertTrue;
 
-/**
- *
- */
+
 public class DeterminizeTest {
 
   private static final Logger log = LoggerFactory.getLogger(DeterminizeTest.class);
 
   @Test
   public void testDeterminize() {
-    MutableFst fstA = Convert.importFst("data/tests/algorithms/determinize/A",
-                                        new TropicalSemiring());
-    MutableFst determinized = Convert.importFst("data/tests/algorithms/determinize/expected",
-                                                new TropicalSemiring());
+    MutableFst fstA = Convert.importFst("data/tests/algorithms/determinize/A", TropicalSemiring.INSTANCE);
+    MutableFst determinized = Convert.importFst("data/tests/algorithms/determinize/expected", TropicalSemiring.INSTANCE);
 
     MutableFst fstDeterminized = Determinize.apply(fstA);
     assertTrue(determinized.equals(fstDeterminized));

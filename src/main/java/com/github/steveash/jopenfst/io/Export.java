@@ -22,7 +22,7 @@ import com.github.steveash.jopenfst.MutableFst;
 /**
  * Provides a command line utility to convert a java binary fst model to openfst's text format
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class Export {
 

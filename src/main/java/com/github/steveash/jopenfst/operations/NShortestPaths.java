@@ -16,9 +16,8 @@
 
 package com.github.steveash.jopenfst.operations;
 
-import com.google.common.collect.MinMaxPriorityQueue;
-import com.google.common.collect.Ordering;
-
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntOpenHashSet;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.IndexWeight;
@@ -26,9 +25,12 @@ import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.semiring.Semiring;
+import com.google.common.collect.MinMaxPriorityQueue;
+import com.google.common.collect.Ordering;
 
-import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 /**
  * N-shortest paths operation.
@@ -36,12 +38,9 @@ import java.util.HashMap;
  * See: M. Mohri, M. Riley, "An Efficient Algorithm for the n-best-strings problem", Proceedings of the International
  * Conference on Spoken Language Processing 2002 (ICSLP ’02).
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class NShortestPaths {
-
-  private NShortestPaths() {
-  }
 
   /**
    * Calculates the shortest distances from each state to the final.
@@ -66,36 +65,36 @@ public class NShortestPaths {
       r[i] = semiring.zero();
     }
 
-    State[] stateMap = new State[reversed.getStateCount()];
-    for (int i = 0; i < reversed.getStateCount(); i++) {
-      stateMap[i] = null;
-    }
-    ArrayList<Integer> queue = new ArrayList<>();
+    IntObjectOpenHashMap<State> stateMap = new IntObjectOpenHashMap<>();
+    Deque<Integer> queue = new LinkedList<>();
+    IntOpenHashSet enqueuedStateIds = new IntOpenHashSet();
 
-    queue.add(reversed.getStartState().getId());
-    stateMap[reversed.getStartState().getId()] = reversed.getStartState();
+    queue.addLast(reversed.getStartState().getId());
+    stateMap.put(reversed.getStartState().getId(), reversed.getStartState());
 
     d[reversed.getStartState().getId()] = semiring.one();
     r[reversed.getStartState().getId()] = semiring.one();
 
     while (!queue.isEmpty()) {
-      State q = stateMap[queue.remove(0)];
-      double rnew = r[q.getId()];
-      r[q.getId()] = semiring.zero();
-      int numArcs = q.getArcCount();
-      for (int i = 0; i < numArcs; i++) {
-        Arc a = q.getArc(i);
-        State nextState = a.getNextState();
-        double dnext = d[a.getNextState().getId()];
-        double dnextnew = semiring.plus(dnext, semiring.times(rnew, a.getWeight()));
+      int thisStateId = queue.removeFirst();
+      enqueuedStateIds.remove(thisStateId);
+      State thisState = stateMap.get(thisStateId);
+      double rnew = r[thisState.getId()];
+      r[thisState.getId()] = semiring.zero();
+
+      for (int i = 0; i < thisState.getArcCount(); i++) {
+        Arc arc = thisState.getArc(i);
+        State nextState = arc.getNextState();
+        double dnext = d[arc.getNextState().getId()];
+        double dnextnew = semiring.plus(dnext, semiring.times(rnew, arc.getWeight()));
         if (dnext != dnextnew) {
-          d[a.getNextState().getId()] = dnextnew;
-          r[a.getNextState().getId()] = semiring.plus(r[a
-              .getNextState().getId()], semiring.times(rnew,
-                                                       a.getWeight()));
-          if (!queue.contains(nextState.getId())) {
-            queue.add(nextState.getId());
-            stateMap[nextState.getId()] = nextState;
+          d[arc.getNextState().getId()] = dnextnew;
+          r[arc.getNextState().getId()] = semiring.plus(r[arc.getNextState().getId()], semiring.times(rnew, arc.getWeight()));
+          int nextStateId = nextState.getId();
+          if (!enqueuedStateIds.contains(nextStateId)) {
+            queue.addLast(nextStateId);
+            enqueuedStateIds.add(nextStateId);
+            stateMap.put(nextStateId, nextState);
           }
         }
       }
@@ -107,10 +106,10 @@ public class NShortestPaths {
    * Calculates the n-best shortest path from the initial to the final state.
    *
    * @param fst         the fst to calculate the nbest shortest paths
-   * @param n           number of best paths to return
+   * @param topk           number of best paths to return
    * @return an fst containing the n-best shortest paths
    */
-  public static MutableFst apply(Fst fst, int n) {
+  public static MutableFst apply(Fst fst, int topk) {
     fst.throwIfInvalid();
     final Semiring semiring = fst.getSemiring();
     final double[] d = shortestDistance(fst);
@@ -151,7 +150,7 @@ public class NShortestPaths {
     while (!qq.isEmpty()) {
       IndexWeight pair = qq.removeFirst();
       State prevOld = copy.getState(pair.getIndex());
-      double c = pair.getWeight();
+      double pairWeight = pair.getWeight();
 
       MutableState resNext = new MutableState(prevOld.getFinalWeight());
       res.addState(resNext);
@@ -173,47 +172,24 @@ public class NShortestPaths {
         }
       }
 
-      Integer stateIndex = prevOld.getId();
+      int stateIndex = prevOld.getId();
       r[stateIndex]++;
 
-      if ((r[stateIndex] == n) && (res.getSemiring().isNotZero(prevOld.getFinalWeight()))) {
+      if ((r[stateIndex] == topk) && (res.getSemiring().isNotZero(prevOld.getFinalWeight()))) {
         break;
       }
 
-      if (r[stateIndex] <= n) {
+      if (r[stateIndex] <= topk) {
         int numArcs = prevOld.getArcCount();
         for (int j = 0; j < numArcs; j++) {
           Arc a = prevOld.getArc(j);
-          double cnew = semiring.times(c, a.getWeight());
+          double cnew = semiring.times(pairWeight, a.getWeight());
           IndexWeight next = new IndexWeight(a.getNextState().getId(), cnew);
           previous.put(next, pair);
           qq.add(next);
         }
       }
     }
-
-    return res;
-  }
-
-  /**
-   * Removes from the queue the pair with the lower path cost
-   */
-  private static IndexWeight getLess(ArrayList<IndexWeight> queue, double[] d,
-                                     Semiring semiring) {
-    IndexWeight res = queue.get(0);
-
-    for (IndexWeight p : queue) {
-      int previousStateId = res.getIndex();
-      int nextStateId = p.getIndex();
-      double previous = res.getWeight();
-      double next = p.getWeight();
-      if (semiring.naturalLess(
-          semiring.times(next, d[nextStateId]),
-          semiring.times(previous, d[previousStateId]))) {
-        res = p;
-      }
-    }
-    queue.remove(res);
     return res;
   }
 }

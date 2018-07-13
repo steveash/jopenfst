@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-/**
- *
- */
 package com.github.steveash.jopenfst.operations;
 
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
-
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class ReverseTest {
 
@@ -38,9 +34,9 @@ public class ReverseTest {
     // Input label sort test
 
     MutableFst fst = Convert.importFst("data/tests/algorithms/reverse/A",
-                                       new TropicalSemiring());
+                                       TropicalSemiring.INSTANCE);
     MutableFst fstB = Convert.importFst("data/tests/algorithms/reverse/expected",
-                                        new TropicalSemiring());
+                                        TropicalSemiring.INSTANCE);
 
     Fst fstReversed = Reverse.reverse(fst);
 

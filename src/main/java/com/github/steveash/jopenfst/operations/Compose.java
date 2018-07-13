@@ -16,10 +16,6 @@
 
 package com.github.steveash.jopenfst.operations;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
 import com.github.steveash.jopenfst.Fst;
@@ -32,118 +28,37 @@ import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.WriteableSymbolTable;
 import com.github.steveash.jopenfst.semiring.Semiring;
+import com.github.steveash.jopenfst.utils.FstUtils;
+import com.google.common.collect.Maps;
 
-import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 
-import static com.github.steveash.jopenfst.operations.Compose.AugmentLabels.INPUT;
-import static com.github.steveash.jopenfst.operations.Compose.AugmentLabels.OUTPUT;
+import static com.github.steveash.jopenfst.utils.FstUtils.LOG_REPORTER;
 import static com.github.steveash.jopenfst.utils.FstUtils.symbolTableEffectiveCopy;
 
 /**
  * Compose operation.
  *
+ * There are two ways to use compose: `compose(a, b, ring)` which does the compose on a b. However, if you are going
+ * to be running with the same b over and over again, you can optimize some of the work by precomputing the b via
+ * `precomputeInner(b)` and then subsequently calling `composeWithPrecomputed()
+ *
  * See: M. Mohri, "Weighted automata algorithms", Handbook of Weighted Automata. Springer, pp. 213-250, 2009.
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
-
 public class Compose {
 
-  public enum AugmentLabels {INPUT, OUTPUT}
+  private enum AugmentLabels {INPUT, OUTPUT}
 
   /**
-   * Default Constructor
+   * Pre-processes a FST that is going to be used on the right hand side of a compose operator many times
+   * @param fst2 the fst that will appear on the right hand side
+   * @param semiring the semiring that will be used for the compose operation
+   * @return a pre-processed form of the inner fst that can be passed to `composeWithPrecomputed`
    */
-  private Compose() {
-  }
-
-  /**
-   * Computes the composition of two Fsts. Assuming no epsilon transitions.
-   *
-   * Input Fsts are not modified.
-   *
-   * @param fst1     the first Fst
-   * @param fst2     the second Fst
-   * @param semiring the semiring to use in the operation
-   * @return the composed Fst
-   */
-  private static MutableFst compose(Fst fst1, Fst fst2, Semiring semiring,
-                                    boolean sorted) {
-//    fst1.throwIfThisOutputIsNotThatInput(fst2);
-
-    MutableFst res = new MutableFst(semiring,
-                                    symbolTableEffectiveCopy(fst1.getInputSymbols()),
-                                    symbolTableEffectiveCopy(fst2.getOutputSymbols()));
-
-    // state map is q -> n where q is (q_i, q_j) a state pair made up of state from fst1 and a state from fst2 and
-    // n is the new state index in the composed FST that represents this tuple
-    HashMap<IndexPair, Integer> stateMap = Maps.newHashMap();
-    ArrayList<IndexPair> queue = Lists.newArrayList();
-
-    State s1 = fst1.getStartState();
-    State s2 = fst2.getStartState();
-    MutableState s;
-
-    if ((s1 == null) || (s2 == null)) {
-      throw new IllegalArgumentException("No initial state in one of " + fst1 + " or " + fst2);
-    }
-
-    IndexPair p = new IndexPair(s1.getId(), s2.getId());
-
-    MutableState newStart = res.newStartState();
-    newStart.setFinalWeight(semiring.times(s1.getFinalWeight(), s2.getFinalWeight()));
-    stateMap.put(p, newStart.getId());
-    queue.add(p);
-
-    SymbolTable.InvertedSymbolTable fst1In = fst1.getInputSymbols().invert();
-    SymbolTable.InvertedSymbolTable fst1Out = fst1.getOutputSymbols().invert();
-    SymbolTable.InvertedSymbolTable fst2In = fst2.getInputSymbols().invert();
-    SymbolTable.InvertedSymbolTable fst2Out = fst2.getOutputSymbols().invert();
-
-    while (!queue.isEmpty()) {
-      p = queue.remove(0);
-      s1 = fst1.getState(p.getLeft());
-      s2 = fst2.getState(p.getRight());
-      s = res.getState(stateMap.get(p));
-      int numArcs1 = s1.getArcCount();
-      int numArcs2 = s2.getArcCount();
-      for (int i = 0; i < numArcs1; i++) {
-        Arc a1 = s1.getArc(i);
-        for (int j = 0; j < numArcs2; j++) {
-          Arc a2 = s2.getArc(j);
-          if (sorted && a1.getOlabel() < a2.getIlabel()) {
-            break;
-          }
-          String a1Isym = fst1In.keyForId(a1.getIlabel());
-          String a1Osym = fst1Out.keyForId(a1.getOlabel());
-          String a2Isym = fst2In.keyForId(a2.getIlabel());
-          String a2Osym = fst2Out.keyForId(a2.getOlabel());
-          if (a1Osym.equalsIgnoreCase(a2Isym)) {
-            State nextState1 = a1.getNextState();
-            State nextState2 = a2.getNextState();
-            IndexPair nextPair = new IndexPair(nextState1.getId(), nextState2.getId());
-            Integer nextState = stateMap.get(nextPair);
-            MutableState realNextState;
-            if (nextState == null) {
-              realNextState = res.newState();
-              realNextState.setFinalWeight(semiring.times(
-                  nextState1.getFinalWeight(),
-                  nextState2.getFinalWeight()));
-              stateMap.put(nextPair, realNextState.getId());
-              queue.add(nextPair);
-            } else {
-              realNextState = res.getState(nextState);
-            }
-            res.addArc(s, a1Isym, a2Osym, realNextState, semiring.times(a1.getWeight(), a2.getWeight()));
-          }
-        }
-      }
-    }
-
-    return res;
-  }
-
   public static PrecomputedComposeFst precomputeInner(Fst fst2, Semiring semiring) {
     fst2.throwIfInvalid();
     MutableFst mutableFst = MutableFst.copyFrom(fst2);
@@ -152,27 +67,56 @@ public class Compose {
     int e2index = getOrAddEps(table, false);
     String eps1 = table.invert().keyForId(e1index);
     String eps2 = table.invert().keyForId(e2index);
-    augment(INPUT, mutableFst, semiring, eps1, eps2);
-    return new PrecomputedComposeFst(eps1, eps2, new ImmutableFst(mutableFst), semiring);
+    augment(AugmentLabels.INPUT, mutableFst, semiring, eps1, eps2);
+    ArcSort.sortByInput(mutableFst);
+
+    MutableFst filter = makeFilter(table, semiring, eps1, eps2);
+    ArcSort.sortByInput(filter);
+
+    return new PrecomputedComposeFst(eps1, eps2, new ImmutableFst(mutableFst), semiring, new ImmutableFst(filter));
   }
 
   public static MutableFst composeWithPrecomputed(MutableFst fst1, PrecomputedComposeFst fst2) {
+    return composeWithPrecomputed(fst1, fst2, false);
+  }
+
+  public static MutableFst composeWithPrecomputed(MutableFst fst1, PrecomputedComposeFst fst2, boolean useSorted) {
+    return composeWithPrecomputed(fst1, fst2, useSorted, true);
+  }
+
+  /**
+   * Executes a compose of fst1 o fst2, with fst2 being a precomputed/preprocessed fst (for performance reasons)
+   * @param fst1 outer fst
+   * @param fst2 inner fst
+   * @param useSorted if true, then performance will be faster; NOTE fst1 must be sorted by OUTPUT labels
+   * @param trimOutput if true, then output will be trimmed before returning
+   * @return
+   */
+  public static MutableFst composeWithPrecomputed(MutableFst fst1, PrecomputedComposeFst fst2, boolean useSorted, boolean trimOutput) {
     fst1.throwIfInvalid();
+    if (useSorted) {
+      if (fst1.getOutputSymbols() != fst2.getFstInputSymbolsAsFrozen() &&
+          fst1.getOutputSymbols() != fst2.getFst().getInputSymbols()) {
+        throw new IllegalArgumentException("When using the precomputed and useSorted optimization, you must have " +
+            "the outer's output symbol be the same symbol table as the inner's input");
+      }
+    }
     Semiring semiring = fst2.getSemiring();
 
-    WriteableSymbolTable table = symbolTableEffectiveCopy(fst1.getOutputSymbols());
-    int e1index = getOrAddEps(table, true);
-    int e2index = getOrAddEps(table, false);
-    String eps1 = table.invert().keyForId(e1index);
-    String eps2 = table.invert().keyForId(e2index);
-    Preconditions.checkArgument(eps1.equals(fst2.getEps1()));
-    Preconditions.checkArgument(eps2.equals(fst2.getEps2()));
-
-    MutableFst filter = makeFilter(table, semiring, eps1, eps2);
-    augment(OUTPUT, fst1, semiring, eps1, eps2);
-
-    MutableFst tmp = Compose.compose(fst1, filter, semiring, false);
-    MutableFst res = Compose.compose(tmp, fst2.getFst(), semiring, false);
+    augment(AugmentLabels.OUTPUT, fst1, semiring, fst2.getEps1(), fst2.getEps2());
+    if (useSorted) {
+      ArcSort.sortByOutput(fst1);
+    }
+    ImmutableFst filter = fst2.getFilterFst();
+    MutableFst tmp = Compose.doCompose(fst1, filter, semiring, useSorted);
+    if (useSorted) {
+      ArcSort.sortByOutput(tmp);
+    }
+    MutableFst res = Compose.doCompose(tmp, fst2.getFst(), semiring, useSorted);
+    // definitionally the output of compose should be trimmed, but if you don't care, you can save some cpu
+    if (trimOutput) {
+      Connect.apply(res);
+    }
     return res;
   }
 
@@ -186,9 +130,25 @@ public class Compose {
    * @return the composed Fst
    */
   public static MutableFst compose(MutableFst fst1, MutableFst fst2, Semiring semiring) {
+    return compose(fst1, fst2, semiring, false);
+  }
+
+  /**
+   * Computes the composition of two Fsts. The two Fsts are augmented in order to avoid multiple epsilon paths in the
+   * resulting Fst
+   *
+   * @param fst1     the first Fst
+   * @param fst2     the second Fst
+   * @param semiring the semiring to use in the operation
+   * @param useSorted if true then the input fsts should be sorted
+   * @return the composed Fst
+   */
+  public static MutableFst compose(MutableFst fst1, MutableFst fst2, Semiring semiring, boolean useSorted) {
     fst1.throwIfInvalid();
     fst2.throwIfInvalid();
-    fst1.throwIfThisOutputIsNotThatInput(fst2);
+    if (!FstUtils.symbolTableEquals(fst1.getOutputSymbols(), fst2.getInputSymbols())) {
+      throw new IllegalArgumentException("Symbol tables don't match, cant compose " + fst1 + " to " + fst2);
+    }
 
     WriteableSymbolTable table = symbolTableEffectiveCopy(fst1.getOutputSymbols());
 
@@ -197,23 +157,26 @@ public class Compose {
     String eps1 = table.invert().keyForId(e1index);
     String eps2 = table.invert().keyForId(e2index);
     MutableFst filter = makeFilter(table, semiring, eps1, eps2);
-    augment(OUTPUT, fst1, semiring, eps1, eps2);
-    augment(INPUT, fst2, semiring, eps1, eps2);
-
-    MutableFst tmp = Compose.compose(fst1, filter, semiring, false);
-    MutableFst res = Compose.compose(tmp, fst2, semiring, false);
-
-    // Connect.apply(res);
+    augment(AugmentLabels.OUTPUT, fst1, semiring, eps1, eps2);
+    augment(AugmentLabels.INPUT, fst2, semiring, eps1, eps2);
+    if (useSorted) {
+      ArcSort.sortByOutput(fst1);
+      ArcSort.sortByInput(filter);
+    }
+    assert(FstUtils.symbolTableEquals(fst1.getOutputSymbols(), filter.getInputSymbols(), LOG_REPORTER));
+    MutableFst tmp = Compose.doCompose(fst1, filter, semiring, useSorted);
+    if (useSorted) {
+      ArcSort.sortByOutput(tmp);
+    }
+    assert(FstUtils.symbolTableEquals(tmp.getOutputSymbols(), fst2.getInputSymbols(), LOG_REPORTER));
+    MutableFst res = Compose.doCompose(tmp, fst2, semiring, useSorted);
+    Connect.apply(res);
 
     return res;
   }
 
   private static int getOrAddEps(WriteableSymbolTable table, boolean isFirst) {
     return table.getOrAdd("<$$compose$$eps" + (isFirst ? "1" : "2") + ">");
-  }
-
-  public static MutableFst composeSimple(Fst fst1, Fst fst2, Semiring semiring) {
-    return Compose.compose(fst1, fst2, semiring, false);
   }
 
   /**
@@ -252,9 +215,6 @@ public class Compose {
       filter.addArc(s1, i, i, s0, semiring.one());
       filter.addArc(s2, i, i, s0, semiring.one());
     }
-
-    // now we need to augment the input fsts to emit the eps1/eps2 in their I/O labels to compose this
-
     return filter;
   }
 
@@ -284,17 +244,98 @@ public class Compose {
     for (int i = 0; i < numStates; i++) {
       MutableState s = fst.getState(i);
       for (MutableArc arc : s.getArcs()) {
-        if ((label == OUTPUT) && (arc.getOlabel() == oEps)) {
+        if ((label == AugmentLabels.OUTPUT) && (arc.getOlabel() == oEps)) {
           arc.setOlabel(e2outputIndex);
-        } else if ((label == INPUT) && (arc.getIlabel() == iEps)) {
+        } else if ((label == AugmentLabels.INPUT) && (arc.getIlabel() == iEps)) {
           arc.setIlabel(e1inputIndex);
         }
       }
-      if (label == INPUT) {
+      if (label == AugmentLabels.INPUT) {
         fst.addArc(s, e2inputIndex, oEps, s, semiring.one());
-      } else if (label == OUTPUT) {
+      } else if (label == AugmentLabels.OUTPUT) {
         fst.addArc(s, iEps, e1outputIndex, s, semiring.one());
       }
     }
+  }
+
+  /**
+   * Computes the composition of two Fsts. Assuming no epsilon transitions.
+   *
+   * Input Fsts are not modified.
+   *
+   * @param fst1     the first Fst
+   * @param fst2     the second Fst
+   * @param semiring the semiring to use in the operation
+   * @return the composed Fst
+   */
+  private static MutableFst doCompose(Fst fst1, Fst fst2, Semiring semiring, boolean useSorted) {
+    if (useSorted) {
+      assert(FstUtils.symbolTableEquals(fst1.getOutputSymbols(), fst2.getInputSymbols()));
+    }
+
+    MutableFst res = new MutableFst(semiring, symbolTableEffectiveCopy(fst1.getInputSymbols()),
+        symbolTableEffectiveCopy(fst2.getOutputSymbols()));
+
+    // state map is q -> n where q is (q_i, q_j) a state pair made up of state from fst1 and a state from fst2 and
+    // n is the new state index in the composed FST that represents this tuple
+    HashMap<IndexPair, Integer> stateMap = Maps.newHashMap();
+    Deque<IndexPair> queue = new LinkedList<>();
+
+    IndexPair first = new IndexPair(fst1.getStartState().getId(), fst2.getStartState().getId());
+    MutableState newStart = res.newStartState();
+    newStart.setFinalWeight(semiring.times(fst1.getStartState().getFinalWeight(), fst2.getStartState().getFinalWeight()));
+    stateMap.put(first, newStart.getId());
+    queue.addLast(first);
+
+    SymbolTable.InvertedSymbolTable fst1In = fst1.getInputSymbols().invert();
+    SymbolTable.InvertedSymbolTable fst1Out = fst1.getOutputSymbols().invert();
+    SymbolTable.InvertedSymbolTable fst2In = fst2.getInputSymbols().invert();
+    SymbolTable.InvertedSymbolTable fst2Out = fst2.getOutputSymbols().invert();
+
+    while (!queue.isEmpty()) {
+      IndexPair p = queue.removeFirst();
+      State s1 = fst1.getState(p.getLeft());
+      State s2 = fst2.getState(p.getRight());
+      MutableState resultState = res.getState(stateMap.get(p));
+      if (useSorted) {
+        assert (ArcSort.isSorted(s1, OLabelCompare.INSTANCE) && ArcSort.isSorted(s2, ILabelCompare.INSTANCE)) :
+            "\ns1 " + s1.getArcs() + "\n s2 " + s2.getArcs();
+      }
+
+      int jstart = 0; // if not sorted jstart is never updated so always does full nested loop
+      for (int i = 0; i < s1.getArcCount(); ++i) {
+        Arc a1 = s1.getArc(i);
+        for (int j = jstart; j < s2.getArcCount(); ++j) {
+          Arc a2 = s2.getArc(j);
+          if (useSorted && a1.getOlabel() < a2.getIlabel()) {
+            break; // if we know the arcs are sorted then once we've gotten here we know there cant be more j's
+          }
+          String a1Isym = fst1In.keyForId(a1.getIlabel());
+          String a1Osym = fst1Out.keyForId(a1.getOlabel());
+          String a2Isym = fst2In.keyForId(a2.getIlabel());
+          String a2Osym = fst2Out.keyForId(a2.getOlabel());
+          if (a1Osym.equals(a2Isym)) {
+            State nextState1 = a1.getNextState();
+            State nextState2 = a2.getNextState();
+            IndexPair nextPair = new IndexPair(nextState1.getId(), nextState2.getId());
+            Integer nextState = stateMap.get(nextPair);
+            MutableState realNextState;
+            if (nextState == null) {
+              realNextState = res.newState();
+              realNextState.setFinalWeight(semiring.times(nextState1.getFinalWeight(), nextState2.getFinalWeight()));
+              stateMap.put(nextPair, realNextState.getId());
+              queue.addLast(nextPair);
+            } else {
+              realNextState = res.getState(nextState);
+            }
+            res.addArc(resultState, a1Isym, a2Osym, realNextState, semiring.times(a1.getWeight(), a2.getWeight()));
+          } else if (useSorted && a1.getOlabel() > a2.getIlabel()) {
+            // if we're sorted and outer is greater then we know we'll never need to eval this inner index again
+            jstart = j + 1;
+          }
+        }
+      }
+    }
+    return res;
   }
 }

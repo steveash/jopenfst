@@ -19,13 +19,12 @@ package com.github.steveash.jopenfst.operations;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.MutableState;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
-
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class ProjectTest {
 
@@ -35,7 +34,7 @@ public class ProjectTest {
    * @return the created fst
    */
   private MutableFst createFst() {
-    TropicalSemiring ts = new TropicalSemiring();
+    TropicalSemiring ts = TropicalSemiring.INSTANCE;
     MutableFst fst = new MutableFst(ts);
 
     MutableState s1 = fst.newState(ts.zero());
@@ -64,7 +63,7 @@ public class ProjectTest {
    * @return the created fst
    */
   private MutableFst createPi() {
-    TropicalSemiring ts = new TropicalSemiring();
+    TropicalSemiring ts = TropicalSemiring.INSTANCE;
     MutableFst fst = new MutableFst(ts);
     MutableState s1 = fst.newState(ts.zero());
     MutableState s2 = fst.newState(ts.zero());
@@ -92,7 +91,7 @@ public class ProjectTest {
    * @return the created fst
    */
   private MutableFst createPo() {
-    TropicalSemiring ts = new TropicalSemiring();
+    TropicalSemiring ts = TropicalSemiring.INSTANCE;
     MutableFst fst = new MutableFst(ts);
 
     MutableState s1 = fst.newState(ts.zero());

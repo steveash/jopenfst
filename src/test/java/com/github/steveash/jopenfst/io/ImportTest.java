@@ -19,7 +19,6 @@ package com.github.steveash.jopenfst.io;
 import com.github.steveash.jopenfst.FstInputOutput;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +30,7 @@ import static org.junit.Assert.assertTrue;
 
 
 /**
- * @author "John Salatas <jsalatas@users.sourceforge.net>"
+ * @author "John Salatas jsalatas@users.sourceforge.net"
  */
 public class ImportTest {
 
@@ -40,14 +39,13 @@ public class ImportTest {
   @Test
   public void testConvert() throws IOException {
 
-    MutableFst fst1 = Convert.importFst("data/openfst/basic", new TropicalSemiring());
+    MutableFst fst1 = Convert.importFst("data/openfst/basic", TropicalSemiring.INSTANCE);
 
     File tempFile = File.createTempFile("fst", "deleteme");
     tempFile.deleteOnExit();
     fst1.saveModel(tempFile);
 
     MutableFst fst2 = FstInputOutput.readFstFromBinaryFile(tempFile);
-
     assertTrue(fst1.equals(fst2));
   }
 }

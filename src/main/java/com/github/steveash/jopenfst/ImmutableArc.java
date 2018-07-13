@@ -20,6 +20,7 @@ import com.github.steveash.jopenfst.utils.FstUtils;
 
 /**
  * Immutable version of an arc
+ * NOTE: All Immutable* classes are thread safe
  * @author Steve Ash
  */
 public class ImmutableArc implements Arc {
@@ -28,7 +29,7 @@ public class ImmutableArc implements Arc {
   private final int olabel;
   private final double weight;
   private final int nextStateId;
-  private volatile ImmutableState nextStateRef;
+  private volatile ImmutableState nextStateRef; // given cycles we have to set this after construction
 
   public ImmutableArc(int ilabel, int olabel, double weight, int nextStateId) {
     this.ilabel = ilabel;

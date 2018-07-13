@@ -21,7 +21,7 @@ package com.github.steveash.jopenfst.operations;
  *
  * It specifies whether the Project operation will take place on input or output labels
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public enum ProjectType {
   INPUT, OUTPUT

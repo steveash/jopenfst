@@ -19,7 +19,7 @@ package com.github.steveash.jopenfst.semiring;
 /**
  * Probability semiring implementation.
  *
- * @author "John Salatas <jsalatas@users.sourceforge.net>"
+ * @author "John Salatas jsalatas@users.sourceforge.net"
  */
 public class ProbabilitySemiring extends Semiring {
 

@@ -16,9 +16,8 @@
 
 package com.github.steveash.jopenfst.operations;
 
-import com.google.common.collect.ComparisonChain;
-
 import com.github.steveash.jopenfst.Arc;
+import com.google.common.collect.ComparisonChain;
 
 import java.util.Comparator;
 
@@ -29,11 +28,6 @@ public class OLabelCompare implements Comparator<Arc> {
 
   public static final OLabelCompare INSTANCE = new OLabelCompare();
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
-   */
   @Override
   public int compare(Arc o1, Arc o2) {
     if (o1 == null) {

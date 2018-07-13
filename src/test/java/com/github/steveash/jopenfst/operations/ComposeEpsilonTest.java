@@ -20,13 +20,13 @@ import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.MutableFst;
 import com.github.steveash.jopenfst.io.Convert;
 import com.github.steveash.jopenfst.semiring.TropicalSemiring;
-
+import com.github.steveash.jopenfst.utils.FstUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class ComposeEpsilonTest {
 
@@ -34,33 +34,25 @@ public class ComposeEpsilonTest {
   public void testCompose() {
     // Input label sort test
 
-    MutableFst fstA = Convert.importFst("data/tests/algorithms/composeeps/A",
-                                        new TropicalSemiring());
-    MutableFst fstB = Convert.importFst("data/tests/algorithms/composeeps/B",
-                                        new TropicalSemiring());
-    MutableFst fstC = Convert.importFst(
-        "data/tests/algorithms/composeeps/fstcomposeeps",
-        new TropicalSemiring());
+    MutableFst fstA = Convert.importFst("data/tests/algorithms/composeeps/A", TropicalSemiring.INSTANCE);
+    MutableFst fstB = Convert.importFst("data/tests/algorithms/composeeps/B", TropicalSemiring.INSTANCE);
+    MutableFst fstC = Convert.importFst("data/tests/algorithms/composeeps/fstcomposeeps",
+        TropicalSemiring.INSTANCE);
 
-    Fst fstComposed = Compose.compose(fstA, fstB, new TropicalSemiring());
-
-    assertTrue(fstC.equals(fstComposed));
+    Fst fstComposed = Compose.compose(fstA, fstB, TropicalSemiring.INSTANCE);
+    assertTrue(FstUtils.fstEquals(fstC, fstComposed, FstUtils.LOG_REPORTER));
   }
 
   @Test
   public void shouldComposePrecomputed() throws Exception {
-    MutableFst fstA = Convert.importFst("data/tests/algorithms/composeeps/A",
-                                        new TropicalSemiring());
-    MutableFst fstB = Convert.importFst("data/tests/algorithms/composeeps/B",
-                                        new TropicalSemiring());
-    MutableFst fstC = Convert.importFst(
-        "data/tests/algorithms/composeeps/fstcomposeeps",
-        new TropicalSemiring());
+    MutableFst fstA = Convert.importFst("data/tests/algorithms/composeeps/A", TropicalSemiring.INSTANCE);
+    MutableFst fstB = Convert.importFst("data/tests/algorithms/composeeps/B", TropicalSemiring.INSTANCE);
+    MutableFst fstC = Convert.importFst("data/tests/algorithms/composeeps/fstcomposeeps",
+        TropicalSemiring.INSTANCE);
 
     PrecomputedComposeFst fst22 = Compose.precomputeInner(fstB, TropicalSemiring.INSTANCE);
     Fst fstComposed = Compose.composeWithPrecomputed(fstA, fst22);
 
-    assertTrue(fstC.equals(fstComposed));
-
+    assertTrue(FstUtils.fstEquals(fstC, fstComposed, FstUtils.LOG_REPORTER));
   }
 }

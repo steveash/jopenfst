@@ -16,10 +16,9 @@
 
 package com.github.steveash.jopenfst.utils;
 
-import com.google.common.math.DoubleMath;
-
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.Arc;
+import com.github.steveash.jopenfst.FrozenSymbolTable;
 import com.github.steveash.jopenfst.Fst;
 import com.github.steveash.jopenfst.ImmutableSymbolTable;
 import com.github.steveash.jopenfst.MutableSymbolTable;
@@ -27,7 +26,7 @@ import com.github.steveash.jopenfst.State;
 import com.github.steveash.jopenfst.SymbolTable;
 import com.github.steveash.jopenfst.UnionSymbolTable;
 import com.github.steveash.jopenfst.WriteableSymbolTable;
-
+import com.google.common.math.DoubleMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -259,6 +258,7 @@ public class FstUtils {
    * Returns an "effective" copy of the given symbol table which might be a unioned symbol
    * table that is just a mutable filter on top of a backing table which is treated as
    * immutable
+   * NOTE a frozen symbol table indicates that you do NOT want writes to be allowed
    * @param syms
    * @return
    */
@@ -268,6 +268,9 @@ public class FstUtils {
     }
     if (syms instanceof UnionSymbolTable) {
       return UnionSymbolTable.copyFrom((UnionSymbolTable) syms);
+    }
+    if (syms instanceof FrozenSymbolTable) {
+      return (FrozenSymbolTable) syms;
     }
     // maybe consider the size and if its "big" return a union of the mutable version?
     return new MutableSymbolTable(syms);

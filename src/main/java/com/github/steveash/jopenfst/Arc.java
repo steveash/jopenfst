@@ -17,15 +17,37 @@
 package com.github.steveash.jopenfst;
 
 /**
+ * Interface for the contract of an Arc in an FST
+ * @see ImmutableArc
+ * @see MutableArc
  * @author Steve Ash
  */
 public interface Arc {
 
+  /**
+   * Get the weight of this edge in the FST (range of values depends on the Semiring used for the FST)
+   * @see Fst#getSemiring()
+   * @return
+   */
   double getWeight();
 
+  /**
+   * Get the index of the input symbol for this edge of the fst
+   * @return
+   */
   int getIlabel();
 
+  /**
+   * Get the index of the output symbol for this edge of the fst
+   * @return
+   */
   int getOlabel();
 
+  /**
+   * Get the reference to the next state in the FST; note that you get call `getNextState().getId()` to get the
+   * FST state id for that state but some operations will be constructing new results and state ids will not be
+   * consistent across them (obviously). If you are using state symbols/labels then the labels will be constistent
+   * @return
+   */
   State getNextState();
 }

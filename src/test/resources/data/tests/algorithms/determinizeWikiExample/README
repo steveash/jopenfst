@@ -1,0 +1,4 @@
+this example is the one for determinize for a transducer (not acceptor) as in openfst docs:
+http://www.openfst.org/twiki/bin/view/FST/DeterminizeDoc
+
+This should be run in FUNCTIONAL mode (although since its functional input the mode shouldn't matter)

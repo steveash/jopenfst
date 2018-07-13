@@ -1,0 +1,2 @@
+this example is the one for transducer determinization that I made up
+same as determinizeFstDisambiguate except run with non_functional instead of disambiguate

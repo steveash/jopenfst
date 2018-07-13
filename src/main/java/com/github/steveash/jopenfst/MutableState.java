@@ -16,10 +16,9 @@
 
 package com.github.steveash.jopenfst;
 
+import com.github.steveash.jopenfst.utils.FstUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
-import com.github.steveash.jopenfst.utils.FstUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,7 +31,7 @@ import java.util.Set;
  *
  * Holds its outgoing {@link MutableArc} objects in an ArrayList allowing additions/deletions
  *
- * @author John Salatas <jsalatas@users.sourceforge.net>
+ * @author John Salatas jsalatas@users.sourceforge.net
  */
 public class MutableState implements State {
 
@@ -40,7 +39,7 @@ public class MutableState implements State {
   protected int id = -1;
 
   // Final weight
-  private double fnlWeight = Double.NaN;
+  private double finalWeight = Double.NaN;
 
   // Outgoing arcs
   private final ArrayList<MutableArc> arcs;
@@ -61,8 +60,8 @@ public class MutableState implements State {
   /**
    * Constructor specifying the state's final weight
    */
-  public MutableState(double fnlWeight) {
-    this.fnlWeight = fnlWeight;
+  public MutableState(double finalWeight) {
+    this.finalWeight = finalWeight;
     this.arcs = Lists.newArrayList();
   }
 
@@ -87,7 +86,7 @@ public class MutableState implements State {
    */
   @Override
   public double getFinalWeight() {
-    return fnlWeight;
+    return finalWeight;
   }
 
   /**
@@ -96,7 +95,7 @@ public class MutableState implements State {
    * @param fnlfloat the final weight to set
    */
   public void setFinalWeight(double fnlfloat) {
-    this.fnlWeight = fnlfloat;
+    this.finalWeight = fnlfloat;
   }
 
   /**
@@ -136,23 +135,12 @@ public class MutableState implements State {
     return this.arcs;
   }
 
-  /*
-     * (non-Javadoc)
-     *
-     * @see java.lang.Object#toString()
-     */
   @Override
   public String toString() {
-    return "(" + id + ", " + fnlWeight + ")";
+    return "(" + id + ", " + finalWeight + ")";
   }
 
   /* friend methods to let the fst maintain state's state */
-
-  // deletes an arc, should only be called from FST itself so that the invariants can be
-  // maintained
-  MutableArc deleteArc(int index) {
-    return this.arcs.remove(index);
-  }
 
   // adds an arc but should only be used by MutableFst
   void addArc(MutableArc arc) {
@@ -181,7 +169,7 @@ public class MutableState implements State {
   @Override
   public int hashCode() {
     int result = id;
-    long temp = fnlWeight != +0.0 ? Double.doubleToLongBits(fnlWeight) : 0;
+    long temp = finalWeight != +0.0 ? Double.doubleToLongBits(finalWeight) : 0;
     result = 31 * result * ((int) (temp ^ (temp >>> 32)));
     result = 31 * result + (arcs != null ? arcs.hashCode() : 0);
     return result;

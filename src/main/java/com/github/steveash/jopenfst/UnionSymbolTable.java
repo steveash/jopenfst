@@ -16,12 +16,11 @@
 
 package com.github.steveash.jopenfst;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
 import com.github.steveash.jopenfst.utils.FstUtils;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 
 import java.util.Iterator;
 
@@ -148,12 +147,6 @@ public class UnionSymbolTable implements WriteableSymbolTable {
     if (filter == null) {
       filter = new MutableSymbolTable(backingMaxId + 1);
     }
-  }
-
-  @Override
-  public int addNewUnique(String prefix) {
-    initFilter();
-    return filter.addNewUnique(prefix);
   }
 
   @Override
