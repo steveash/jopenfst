@@ -1,17 +1,18 @@
 /*
- * Copyright 2014 Steve Ash
+ * Copyright 2018 Steve Ash
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package com.github.steveash.jopenfst.io;
@@ -49,7 +50,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * Provides the required functionality in order to convert from/to openfst's text format
- *
+ * <p>
  * NOTE that the original CMU implementation of this assumed that the symbols themselves were in the fst text format
  * and NOT the symbol ids (as described in the AT&T spec). There is a static flag (yuck, I know) to control whether
  * you expect symbols or symbol ids in the input/output text files (defaulting to expecting the symbols themselves
@@ -65,10 +66,13 @@ public class Convert {
 
   // if true, then expect the tokens in the text format to be integer symbol ids and not the symbols themselves
   private static boolean useSymbolIdsInText = false;
+  private static String regexToSplitOn = "\\t";
+  private static boolean omitZeroStates = true;
 
   /**
-   * if true, then expects that the tokens in the input and output symbols are the integer ids of the token and not
+   * If true, then expects that the tokens in the input and output symbols are the integer ids of the token and not
    * the token itself
+   *
    * @return
    */
   public static boolean isUseSymbolIdsInText() {
@@ -78,10 +82,52 @@ public class Convert {
   /**
    * If true then when importing an FST text file, it interprets the states as ids from the isymb/osymb tables
    * instead of the symbol values themselves (the strings)
+   *
    * @param useSymbolIdsInText
    */
   public static void setUseSymbolIdsInText(boolean useSymbolIdsInText) {
     Convert.useSymbolIdsInText = useSymbolIdsInText;
+  }
+
+  /**
+   * the regex to use to split the FST file; defaults to \\t to split on tabs
+   *
+   * @return
+   */
+  public static String getRegexToSplitOn() {
+    return regexToSplitOn;
+  }
+
+  /**
+   * sets the regex to use to split the FST file; defaults to \\t but can be set to \\s+ to relax
+   * the whitespace requirements a little (which can be convenient)
+   *
+   * @param regexToSplitOn
+   */
+  public static void setRegexToSplitOn(String regexToSplitOn) {
+    Convert.regexToSplitOn = regexToSplitOn;
+  }
+
+  /**
+   * If true (default) then states with a zero weight (i.e. non-final states) aren't printed at the start of the
+   * file (except the start state; that's always printed first); omitting zero states is also the behavior of
+   * openfst
+   *
+   * @return
+   */
+  public static boolean isOmitZeroStates() {
+    return omitZeroStates;
+  }
+
+  /**
+   * If true (default) then states with a zero weight (i.e. non-final states) aren't printed at the start of the
+   * file (except the start state; that's always printed first); omitting zero states is also the behavior of
+   * openfst
+   *
+   * @param omitZeroStates
+   */
+  public static void setOmitZeroStates(boolean omitZeroStates) {
+    Convert.omitZeroStates = omitZeroStates;
   }
 
   /**
@@ -121,7 +167,10 @@ public class Convert {
       int numStates = fst.getStateCount();
       for (int i = 0; i < numStates; i++) {
         State s = fst.getState(i);
-        if (s.getId() != fst.getStartState().getId()) {
+        if (s.getId() == fst.getStartState().getId()) {
+          continue;
+        }
+        if (fst.getSemiring().isNotZero(s.getFinalWeight()) || !omitZeroStates) {
           out.println(s.getId() + "\t" + s.getFinalWeight());
         }
       }
@@ -145,8 +194,8 @@ public class Convert {
           }
 
           out.println(s.getId() + "\t" + arc.getNextState().getId()
-                      + "\t" + isym + "\t" + osym + "\t"
-                      + arc.getWeight());
+            + "\t" + isym + "\t" + osym + "\t"
+            + arc.getWeight());
         }
       }
 
@@ -312,7 +361,7 @@ public class Convert {
           continue;
         }
         try {
-          String[] tokens = line.split("\\t");
+          String[] tokens = line.split(regexToSplitOn);
           Integer inputStateId;
           if (ssyms == null) {
             inputStateId = Integer.parseInt(tokens[0]);
@@ -374,7 +423,7 @@ public class Convert {
           }
         } catch (RuntimeException e) {
           throw new RuntimeException("Problem converting and parsing line " + lineNo + " from FST input file. Line: " +
-              line, e);
+            line, e);
         }
       }
     } catch (IOException e) {

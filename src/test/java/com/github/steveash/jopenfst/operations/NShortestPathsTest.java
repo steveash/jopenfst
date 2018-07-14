@@ -39,7 +39,7 @@ public class NShortestPathsTest {
 
     MutableFst detFst = Determinize.apply(fst);
     Fst fstNsp = NShortestPaths.apply(detFst, 6);
-    Convert.export(fstNsp, "shortest-export");
+//    Convert.export(fstNsp, "shortest-export");
     assertTrue(FstUtils.fstEquals(nsp, fstNsp, FstUtils.LOG_REPORTER));
   }
 }

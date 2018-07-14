@@ -22,7 +22,7 @@
   <groupId>com.github.steveash.jopenfst</groupId>
   <artifactId>jopenfst</artifactId>
   <name>jopenfst</name>
-  <version>0.2.0</version>
+  <version>0.3.0</version>
   <description>Partial Java port of the OpenFST library; forked from the CMU Sphinx project</description>
   <packaging>jar</packaging>
 
