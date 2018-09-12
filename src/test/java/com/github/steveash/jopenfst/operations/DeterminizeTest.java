@@ -109,4 +109,13 @@ public class DeterminizeTest {
     MutableFst fstDeterminizedMin = new Determinize(Determinize.DeterminizeMode.DISAMBIGUATE).compute(fstA);
     assertTrue(determinizedMin.equals(fstDeterminizedMin));
   }
+
+  @Test
+  public void testDeterminizeFstNonFunctional3() {
+    MutableFst fstA = Convert.importFst("data/tests/algorithms/determinizeFstNonFunctional3/A", TropicalSemiring.INSTANCE);
+    MutableFst determinized = Convert.importFst("data/tests/algorithms/determinizeFstNonFunctional3/expected", TropicalSemiring.INSTANCE);
+
+    MutableFst fstDeterminized = new Determinize(Determinize.DeterminizeMode.NON_FUNCTIONAL).compute(fstA);
+    assertTrue(determinized.equals(fstDeterminized));
+  }
 }
