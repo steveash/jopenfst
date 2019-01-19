@@ -18,6 +18,7 @@ package com.github.steveash.jopenfst.semiring;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.github.steveash.jopenfst.semiring.GallicSemiring.GallicWeight;
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
 import com.google.common.math.DoubleMath;
@@ -36,7 +37,7 @@ import static com.github.steveash.jopenfst.semiring.GallicSemiring.GallicMode.RE
  * Gallic weights are useful for representing FSTs _as_ FSAs; we convert the output labels + edge weights into a
  * single Gallic weight and then (within the constraints of the gallic semiring) it is a normal FSA
  */
-public class GallicSemiring implements GenericSemiring<GallicWeight> {
+public class GallicSemiring extends GenericSemiring<GallicWeight> {
 
   public enum GallicMode {
 
@@ -75,7 +76,13 @@ public class GallicSemiring implements GenericSemiring<GallicWeight> {
    * primitive weight (to break shortlex ties)
    */
   public static final Ordering<GallicWeight> NATURAL_ORDERING = SHORTLEX_ORDERING.compound(
-    Ordering.natural().onResultOf(GallicWeight::getWeight)
+		  Ordering.natural().onResultOf(new Function<GallicWeight,Double>(){
+				@Override
+				public Double apply(GallicWeight arg0) {
+					return Double.valueOf( arg0.getWeight() );
+				}
+			}
+		  )
   );
 
   private final GallicWeight zero;

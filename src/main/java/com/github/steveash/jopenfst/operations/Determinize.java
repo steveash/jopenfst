@@ -25,6 +25,7 @@ import com.github.steveash.jopenfst.semiring.GallicSemiring.GallicWeight;
 import com.github.steveash.jopenfst.semiring.GenericSemiring;
 import com.github.steveash.jopenfst.semiring.Semiring;
 import com.github.steveash.jopenfst.semiring.UnionSemiring;
+import com.github.steveash.jopenfst.semiring.UnionSemiring.MergeStrategy;
 import com.github.steveash.jopenfst.semiring.UnionSemiring.UnionMode;
 import com.github.steveash.jopenfst.semiring.UnionSemiring.UnionWeight;
 import com.google.common.annotations.VisibleForTesting;
@@ -154,7 +155,9 @@ public class Determinize {
       MutableState outStateForTuple = getOutputStateForStateTuple(entry);
 
       Collection<DetArcWork> arcWorks = groupByInputLabel(entry);
-      arcWorks.forEach(this::normalizeArcWork);
+      for(DetArcWork work : arcWorks) {
+    	  this.normalizeArcWork(work);
+      }
 
       for (DetArcWork arcWork : arcWorks) {
         DetStateTuple targetTuple = new DetStateTuple(arcWork.pendingElements);
@@ -188,8 +191,8 @@ public class Determinize {
     return outputFst;
   }
 
-  private static UnionSemiring<GallicWeight, GallicSemiring> makeUnionRing(Semiring semiring,
-                                                                           GallicSemiring gallicSemiring,
+  private static UnionSemiring<GallicWeight, GallicSemiring> makeUnionRing(final Semiring semiring,
+                                                                           final GallicSemiring gallicSemiring,
                                                                            DeterminizeMode mode) {
     switch (mode) {
       case FUNCTIONAL:
@@ -202,15 +205,25 @@ public class Determinize {
       case DISAMBIGUATE:
         // disambiguate also doesn't want union semantics and we still merge via gallic plus -- but in this case
         // it is min gallic plus so it will just pick the shorter path
-        return UnionSemiring.makeForOrdering(gallicSemiring, Ordering.allEqual(), gallicSemiring::plus,
-          UnionMode.RESTRICTED);
+		return UnionSemiring.makeForOrdering(gallicSemiring, Ordering.allEqual(), new MergeStrategy<GallicWeight>() {
+			@Override
+			public GallicWeight merge(GallicWeight a, GallicWeight b) {
+				return gallicSemiring.plus(a, b);
+			}
+		}, UnionMode.RESTRICTED);
+        
 
       case NON_FUNCTIONAL:
         // in this case we do use the real union semantics and want to merge the same label weights
-        UnionSemiring.MergeStrategy<GallicWeight> doMerge = (a, b) -> {
-          Preconditions.checkArgument(a.getLabels().equals(b.getLabels()), "cant merge different labels");
-          return GallicWeight.create(a.getLabels(), semiring.plus(a.getWeight(), b.getWeight()));
-        };
+        
+        UnionSemiring.MergeStrategy<GallicWeight> doMerge = new UnionSemiring.MergeStrategy<GallicSemiring.GallicWeight>() {
+			@Override
+			public GallicWeight merge(GallicWeight a, GallicWeight b) {
+				Preconditions.checkArgument(a.getLabels().equals(b.getLabels()), "cant merge different labels");
+		          return GallicWeight.create(a.getLabels(), semiring.plus(a.getWeight(), b.getWeight()));
+			}
+		};
+        
         return UnionSemiring.makeForOrdering(gallicSemiring, SHORTLEX_ORDERING, doMerge, UnionMode.NORMAL);
       default:
         throw new IllegalArgumentException("unknown mode " + mode);
@@ -231,8 +244,12 @@ public class Determinize {
         DetElement pendingElement = new DetElement(inputArc.getNextState().getId(),
           this.unionSemiring.times(detElement.getResidual(), inputArcAsUnion));
 
-        DetArcWork work = inputLabelToWork.computeIfAbsent(inputArc.getIlabel(),
-          iLabel -> new DetArcWork(iLabel, this.unionSemiring.zero()));
+        DetArcWork work = inputLabelToWork.get(inputArc.getIlabel());
+        if(work == null) {
+        	work = new DetArcWork(inputArc.getIlabel(), this.unionSemiring.zero());
+        	inputLabelToWork.put(inputArc.getIlabel(), work);
+        }
+        
         work.pendingElements.add(pendingElement);
       }
     }

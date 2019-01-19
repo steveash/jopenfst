@@ -70,51 +70,117 @@ public class SemiringTester<W> {
     this.randValuesToTest = randValuesToTest;
   }
 
-  private void assertSemiringPropertiesOnValues(GenericSemiring<W> s, W a, W b, W c) {
+  private void assertSemiringPropertiesOnValues(final GenericSemiring<W> s, W a, W b, W c) {
 
     // closure
-    assertTwo(a, b, (aa, bb) -> s.isMember(s.plus(aa, bb)));
-    assertTwo(a, b, (aa, bb) -> s.isMember(s.times(aa, bb)));
+    assertTwo(a, b, new BiFunction<W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb) {
+			return s.isMember(s.plus(aa, bb));
+		}
+	});
+    
+    assertTwo(a, b, new BiFunction<W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb) {
+			return s.isMember(s.times(aa, bb));
+		}
+	});
+    
+    
     // associativeity
-    assertThree(a, b, c, (aa, bb, cc) ->
-      s.isApproxEqual(s.plus(aa, s.plus(bb, cc)),
-        s.plus(s.plus(aa, bb), cc))
-    );
-    assertThree(a, b, c, (aa, bb, cc) ->
-      s.isApproxEqual(s.times(aa, s.times(bb, cc)),
-        s.times(s.times(aa, bb), cc))
-    );
+    assertThree(a, b, c, new TriFunction<W,W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb, W cc) {
+			return s.isApproxEqual(s.plus(aa, s.plus(bb, cc)),
+			        s.plus(s.plus(aa, bb), cc));
+		}
+	});
+    assertThree(a, b, c, new TriFunction<W,W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb, W cc) {
+			return s.isApproxEqual(s.times(aa, s.times(bb, cc)),
+			        s.times(s.times(aa, bb), cc));
+		}
+	});
     // identity operations
-    assertTwo(a, b, (aa, bb) -> s.isApproxEqual(aa, s.plus(aa, s.zero())));
-    assertTwo(a, b, (aa, bb) -> s.isApproxEqual(aa, s.plus(s.zero(), aa)));
-    assertTwo(a, b, (aa, bb) -> s.isApproxEqual(aa, s.times(aa, s.one())));
-    assertTwo(a, b, (aa, bb) -> s.isApproxEqual(aa, s.times(s.one(), aa)));
+    assertTwo(a, b, new BiFunction<W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb) {
+			return s.isApproxEqual(aa, s.plus(aa, s.zero()));
+		}
+	});
+    
+    
+    assertTwo(a, b, new BiFunction<W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb) {
+			return s.isApproxEqual(aa, s.plus(s.zero(), aa));
+		}
+	});
+    assertTwo(a, b, new BiFunction<W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb) {
+			return s.isApproxEqual(aa, s.times(aa, s.one()));
+		}
+	});
+    assertTwo(a, b, new BiFunction<W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb) {
+			return s.isApproxEqual(aa, s.times(s.one(), aa));
+		}
+	});
     // commutative
-    assertTwo(a, b, (aa, bb) -> s.isApproxEqual(s.plus(aa, bb), s.plus(bb, aa)));
+    assertTwo(a, b, new BiFunction<W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb) {
+			return s.isApproxEqual(s.plus(aa, bb), s.plus(bb, aa));
+		}
+	});
     // multiplication isn't always defined to be commutative but i think in the semirings i have so far it should be
-    assertTwo(a, b, (aa, bb) -> s.isApproxEqual(s.times(aa, bb), s.times(bb, aa)));
+    assertTwo(a, b, new BiFunction<W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb) {
+			return s.isApproxEqual(s.times(aa, bb), s.times(bb, aa));
+		}
+	});
     // zero is the annihilator
-    assertTwo(a, b, (aa, bb) -> s.isApproxEqual(s.zero(), s.times(aa, s.zero())));
-    assertTwo(a, b, (aa, bb) -> s.isApproxEqual(s.zero(), s.times(s.zero(), aa)));
+    assertTwo(a, b, new BiFunction<W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb) {
+			return s.isApproxEqual(s.zero(), s.times(aa, s.zero()));
+		}
+	});
+    assertTwo(a, b, new BiFunction<W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb) {
+			return s.isApproxEqual(s.zero(), s.times(s.zero(), aa));
+		}
+	});
     // left commutative (i think all of the rings that i have are this, but there are some rings that aren't
     // (e.g. right string ring), so this might need to be generalized in the future like openfst is
-    assertThree(a, b, c, (aa, bb, cc) ->
-      s.isApproxEqual(s.times(aa, s.plus(bb, cc)),
-        s.plus(s.times(aa, bb), s.times(aa, cc)))
-    );
+    assertThree(a, b, c, new TriFunction<W,W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb, W cc) {
+			return s.isApproxEqual(s.times(aa, s.times(bb, cc)),
+			        s.times(s.times(aa, bb), cc));
+		}
+	});
   }
 
-  private void assertDivideOnValues(GenericSemiring<W> s, W a, W b) {
+  private void assertDivideOnValues(final GenericSemiring<W> s, W a, W b) {
     // test left division
     W ab = s.times(a, b);
-    assertThree(a, b, ab, (aa, bb, aabb) -> {
-        W dd = s.divide(aabb, aa);
-        if (!s.isMember(dd)) { // division is defined to work on the entire range of values or all semirings
-          return true;
-        }
-        return s.isApproxEqual(aabb, s.times(aa, dd));
-      }
-    );
+    assertThree(a, b, ab, new TriFunction<W,W,W,Boolean>(){
+		@Override
+		public Boolean apply(W aa, W bb, W aabb) {
+	        W dd = s.divide(aabb, aa);
+	        if (!s.isMember(dd)) { // division is defined to work on the entire range of values or all semirings
+	          return true;
+	        }
+	        return s.isApproxEqual(aabb, s.times(aa, dd));
+		}
+	});
   }
 
   private <T, U> void assertTwo(T first, U second, BiFunction<T, U, Boolean> func) {
