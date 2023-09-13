@@ -23,7 +23,7 @@ package com.github.steveash.jopenfst.semiring;
  * Given the performance sensitive nature of most of the Semiring operations you wouldn't want to use
  * GenericSemiring<Double> (and get lots of boxing) where you could use Semiring instead
  */
-public interface GenericSemiring<W> {
+public abstract class GenericSemiring<W> {
 
   /**
    * returns a plus b for this semiring; plus is the generalization of combining sequences
@@ -32,7 +32,7 @@ public interface GenericSemiring<W> {
    * @param b weight W
    * @return resulting weight W
    */
-  W plus(W a, W b);
+  public abstract W plus(W a, W b);
 
   /**
    * returns the reverse of the weight for this semiring
@@ -40,7 +40,7 @@ public interface GenericSemiring<W> {
    * @param a
    * @return
    */
-  W reverse(W a);
+  public abstract W reverse(W a);
 
   /**
    * returns a times b for this semiring; times is the generalization of extending a sequence (like a path)
@@ -49,7 +49,7 @@ public interface GenericSemiring<W> {
    * @param b
    * @return
    */
-  W times(W a, W b);
+  public abstract W times(W a, W b);
 
   /**
    * returns a dividedBy b; divide is only defined on some semirings and means: c = a times b then c dividedB b = a
@@ -58,21 +58,21 @@ public interface GenericSemiring<W> {
    * @param b
    * @return
    */
-  W divide(W a, W b);
+  public abstract W divide(W a, W b);
 
   /**
    * The ZERO element for this semiring; requirement that x = plus(x, zero)
    *
    * @return
    */
-  W zero();
+  public abstract W zero();
 
   /**
    * The ONE element for this semiring; requirement that x = times(x, one)
    *
    * @return
    */
-  W one();
+  public abstract W one();
 
   /**
    * Returns true if a is a member of this semiring
@@ -80,7 +80,7 @@ public interface GenericSemiring<W> {
    * @param a
    * @return true if member, false if not
    */
-  boolean isMember(W a);
+  public abstract boolean isMember(W a);
 
   /**
    * Returns true if these two weights, members of this semiring, are approx equal to each other
@@ -88,21 +88,21 @@ public interface GenericSemiring<W> {
    * @param b
    * @return
    */
-  boolean isApproxEqual(W a, W b);
+  public abstract boolean isApproxEqual(W a, W b);
 
   /**
    * Returns true is the given weight is the zero element in this semiring
    * @param a
    * @return
    */
-  boolean isZero(W a);
+  public abstract boolean isZero(W a);
 
   /**
    * Returns true if the given weight is NOT the zero element in this semiring
    * @param a
    * @return
    */
-  default boolean isNotZero(W a) {
+  public boolean isNotZero(W a) {
     return !isZero(a);
   }
 
@@ -114,7 +114,7 @@ public interface GenericSemiring<W> {
    * @param b
    * @return
    */
-  default W commonDivisor(W a, W b) {
+  public W commonDivisor(W a, W b) {
     throw new UnsupportedOperationException("semiring " + this + " doesnt support common divisor");
   }
 
@@ -132,7 +132,7 @@ public interface GenericSemiring<W> {
    *
    * We define the strict version of this order below.
    */
-  default boolean naturalLess(W a, W b) {
+  public boolean naturalLess(W a, W b) {
     return (!isApproxEqual(a, b) && isApproxEqual(plus(a, b), a));
   }
 }

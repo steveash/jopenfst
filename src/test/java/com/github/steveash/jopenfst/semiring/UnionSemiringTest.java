@@ -42,10 +42,15 @@ public class UnionSemiringTest {
     weightRing = TropicalSemiring.INSTANCE;
     gallicRing = new GallicSemiring(weightRing, GallicSemiring.GallicMode.RESTRICT_GALLIC);
     ring = UnionSemiring.makeForNaturalOrdering(new PrimitiveSemiringAdapter(TropicalSemiring.INSTANCE));
-    UnionSemiring.MergeStrategy<GallicWeight> merge = (a, b) -> {
-      Preconditions.checkArgument(a.getLabels().equals(b.getLabels()), "cant merge different labels");
-      return GallicWeight.create(a.getLabels(), weightRing.plus(a.getWeight(), b.getWeight()));
-    };
+    
+    UnionSemiring.MergeStrategy<GallicWeight> merge = new UnionSemiring.MergeStrategy<GallicWeight>() {
+		@Override
+		public GallicWeight merge(GallicWeight a, GallicWeight b) {
+		      Preconditions.checkArgument(a.getLabels().equals(b.getLabels()), "cant merge different labels");
+		      return GallicWeight.create(a.getLabels(), weightRing.plus(a.getWeight(), b.getWeight()));
+		}
+	};
+    
     gallicUnionRing = UnionSemiring.makeForOrdering(gallicRing, GallicSemiring.SHORTLEX_ORDERING, merge);
     zero = gallicUnionRing.zero();
   }

@@ -61,7 +61,7 @@ public abstract class WeightGenerator<W> {
     };
   }
 
-  public static WeightGenerator<UnionWeight<Double>> makeUnion(int seed, boolean onlySingles) {
+  public static WeightGenerator<UnionWeight<Double>> makeUnion(int seed, final boolean onlySingles) {
     return new WeightGenerator<UnionWeight<Double>>(seed) {
       @Override
       public UnionWeight<Double> generate() {

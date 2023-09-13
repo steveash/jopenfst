@@ -44,7 +44,7 @@ import java.util.Objects;
  * @param <W> the type of the weight contained in a unionweight
  * @param <S> the type of the semiring that governs the contained W weight type
  */
-public class UnionSemiring<W, S extends GenericSemiring<W>> implements GenericSemiring<UnionWeight<W>> {
+public class UnionSemiring<W, S extends GenericSemiring<W>> extends GenericSemiring<UnionWeight<W>> {
 
   public enum UnionMode {
     // (default) this is the typical semantics of union described in the class doc
@@ -67,7 +67,11 @@ public class UnionSemiring<W, S extends GenericSemiring<W>> implements GenericSe
    */
   public static <W extends Comparable<W>, S extends GenericSemiring<W>> UnionSemiring<W, S> makeForNaturalOrdering(
     S weightSemiring) {
-    return makeForOrdering(weightSemiring, Ordering.natural(), defaultMerge());
+	  
+	final Ordering<W> ordering = Ordering.natural();
+	final MergeStrategy<W> merge = defaultMerge();
+	  
+    return makeForOrdering(weightSemiring, ordering, merge);//FIXME
   }
 
   /**
@@ -330,7 +334,12 @@ public class UnionSemiring<W, S extends GenericSemiring<W>> implements GenericSe
   /**
    * Default merge just picks one arbitrarily (but it always picks the left one)
    */
-  private static final MergeStrategy<?> DEFAULT_MERGE = (MergeStrategy<Object>) (a, b) -> a;
+  private static final MergeStrategy<?> DEFAULT_MERGE = new MergeStrategy<Object>() {
+		@Override
+		public Object merge(Object a, Object b) {
+			return a;
+		}
+  };
 
   public static <W> MergeStrategy<W> defaultMerge() {
     @SuppressWarnings("unchecked")

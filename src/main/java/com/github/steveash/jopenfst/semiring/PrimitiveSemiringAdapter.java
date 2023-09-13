@@ -23,7 +23,7 @@ import com.google.common.math.DoubleMath;
  * Adapter between a primitive simiring and a generic semiring; useful for testing and non-performance sensitive
  * areas
  */
-public class PrimitiveSemiringAdapter implements GenericSemiring<Double> {
+public class PrimitiveSemiringAdapter extends GenericSemiring<Double> {
 
   private final Semiring semiring;
 
